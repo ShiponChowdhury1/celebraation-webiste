@@ -8,9 +8,11 @@ import {
   UserPlus, ChevronRight, ShieldCheck, Clock, Check, MoreHorizontal,
   Eye, Link2, Edit2, Archive, Trash2, CalendarDays, Award, User,
   CalendarRange, ArrowUpDown, ChevronDown, TrendingUp, Camera,
-  CreditCard, FileText, Laptop, Smartphone, Key, Lock, Trash
+  CreditCard, FileText, Laptop, Smartphone, Key, Lock, Trash, Save,
+  Palette, Info, ArrowLeft, ArrowRight, Share2, Globe, LockKeyhole
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import confetti from "canvas-confetti";
 
 // Import Recharts elements for analytics section
 import { 
@@ -57,13 +59,8 @@ const ProgressCircle = ({ percentage }: { percentage: number }) => {
 };
 
 export default function Dashboard() {
-  const [userProfile, setUserProfile] = useState({
-    name: "Jamie Rivera",
-    email: "jamie@example.com",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80"
-  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, events, network, analytics, notifications, settings...
+  const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, events, network, analytics, notifications, settings, create-celebration
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all"); // all, live, draft, closed, revealed, archived
 
@@ -102,6 +99,39 @@ export default function Dashboard() {
     { id: "sess-mac", device: "MacBook Pro - Chrome", location: "San Francisco, CA · Now", current: true },
     { id: "sess-iphone", device: "iPhone 15 - Safari", location: "San Francisco, CA · 2 hours ago", current: false }
   ]);
+
+  // Profile state for header / sidebar updating
+  const [userProfile, setUserProfile] = useState({
+    name: "Jamie Rivera",
+    email: "jamie@example.com",
+    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80"
+  });
+
+  // ----------------------------------------------------
+  // MULTI-STEP CREATION WIZARD STATE
+  // ----------------------------------------------------
+  const [wizardStep, setWizardStep] = useState(1); // 1: Basics, 2: Design, 3: WishPool, 4: Publish
+  const [wTitle, setWTitle] = useState("Emma's 30th Birthday");
+  const [wType, setWType] = useState("Birthday"); // Birthday, Wedding, Anniversary, Graduation, Baby Shower, Retirement, Promotion, Work Anniversary, Custom
+  const [wRecipient, setWRecipient] = useState("Emma Johnson");
+  const [wRecipientCustom, setWRecipientCustom] = useState("");
+  const [isRecipientDropdownOpen, setIsRecipientDropdownOpen] = useState(false);
+  const [wDate, setWDate] = useState("2025-07-15");
+  const [wDescription, setWDescription] = useState("Emma's 30th Birthday is coming up. Let's fill this pool with love, messages, and help her hit her goals!");
+  const [wTheme, setWTheme] = useState("Celestial"); // Celestial, Bloom, Golden, Sky, Garden, Midnight, Peach, Sago
+  const [wInviteEmail, setWInviteEmail] = useState("");
+  const [wInvitees, setWInvitees] = useState<string[]>(["mdsohanurrohman310@gmail.com"]);
+  const [wPrivacy, setWPrivacy] = useState("Public"); // Private, Public
+
+  // Step 2 design
+  const [wHeadline, setWHeadline] = useState("A Special Celebration");
+  const [wWelcomeMsg, setWWelcomeMsg] = useState("Join us in making this moment extra special!");
+
+  // Step 3 WishPool funds
+  const [wGoalFund, setWGoalFund] = useState(1000);
+  const [wAllowCustomAmount, setWAllowCustomAmount] = useState(true);
+  const [wStripeConnected, setWStripeConnected] = useState(false);
+  const recipientDropdownRef = useRef<HTMLDivElement>(null);
 
   // SSR safety check mounted state
   const [mounted, setMounted] = useState(false);
@@ -423,6 +453,9 @@ export default function Dashboard() {
       if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
         setIsSortDropdownOpen(false);
       }
+      if (recipientDropdownRef.current && !recipientDropdownRef.current.contains(event.target as Node)) {
+        setIsRecipientDropdownOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -462,35 +495,6 @@ export default function Dashboard() {
     }));
     triggerToast("Celebration updated successfully!");
     setActiveModal(null);
-  };
-
-  // Submit new celebration
-  const handleCreateCelebration = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newId = `event-${Date.now()}`;
-    const targetVal = parseFloat(formTarget) || 500;
-    const newEvent = {
-      id: newId,
-      title: formTitle || "New Celebration",
-      recipient: formRecipient || "Someone Special",
-      relation: formRelation || "Friend",
-      status: "live",
-      date: formDate || "Dec 25, 2026",
-      contributors: 0,
-      raised: 0,
-      target: targetVal,
-      icon: formTitle.includes("Grad") ? "🎓" : formTitle.includes("Wed") ? "💍" : "🎂",
-      color: "bg-gradient-to-r from-purple-500 to-pink-500",
-      progress: 0,
-    };
-    setEvents(prev => [newEvent, ...prev]);
-    triggerToast("New celebration page created!");
-    setActiveModal(null);
-    // Reset fields
-    setFormTitle("");
-    setFormRecipient("");
-    setFormDate("");
-    setFormTarget("");
   };
 
   // Submit network person additions/edits
@@ -619,6 +623,134 @@ export default function Dashboard() {
     triggerToast("Session revoked.");
   };
 
+  // ----------------------------------------------------
+  // ADD PARTICIPANT WIZARD TRIGGER
+  // ----------------------------------------------------
+  const handleAddInvitee = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!wInviteEmail || !wInviteEmail.includes("@")) {
+      triggerToast("Enter a valid email address!");
+      return;
+    }
+    if (wInvitees.includes(wInviteEmail)) {
+      triggerToast("Participant already added.");
+      return;
+    }
+    setWInvitees(prev => [...prev, wInviteEmail]);
+    setWInviteEmail("");
+    triggerToast("Participant added to invite list!");
+  };
+
+  const handleRemoveInvitee = (email: string) => {
+    setWInvitees(prev => prev.filter(e => e !== email));
+  };
+
+  // ----------------------------------------------------
+  // CONFIRM AND PUBLISH NEW CELEBRATION
+  // ----------------------------------------------------
+  const handlePublishCelebration = () => {
+    // Determine details
+    const chosenRecipient = wRecipient === "Someone else" ? (wRecipientCustom || "Someone Special") : wRecipient;
+    
+    // Find relation from network list if available
+    const matchedContact = networkPeople.find(p => p.name === chosenRecipient);
+    const relation = matchedContact ? matchedContact.relation : "Friend";
+    
+    // Format Date
+    let dateStr = "Dec 25, 2026";
+    if (wDate) {
+      const parts = wDate.split("-");
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      if (parts.length === 3) {
+        const mIdx = parseInt(parts[1]) - 1;
+        dateStr = `${monthNames[mIdx]} ${parseInt(parts[2])}, ${parts[0]}`;
+      }
+    }
+
+    // Determine event emoji icon
+    let chosenIcon = "🎂";
+    if (wType === "Wedding") chosenIcon = "💍";
+    if (wType === "Anniversary") chosenIcon = "🥂";
+    if (wType === "Graduation") chosenIcon = "🎓";
+    if (wType === "Baby Shower") chosenIcon = "👶";
+    if (wType === "Retirement") chosenIcon = "🌅";
+    if (wType === "Promotion") chosenIcon = "🏆";
+    if (wType === "Work Anniversary") chosenIcon = "🏢";
+    if (wType === "Custom") chosenIcon = "✨";
+
+    // Setup color gradients
+    let themeBg = "bg-gradient-to-r from-purple-500 to-pink-500";
+    if (wTheme === "Bloom") themeBg = "bg-gradient-to-r from-pink-500 to-rose-600";
+    if (wTheme === "Golden") themeBg = "bg-gradient-to-r from-amber-500 to-orange-600";
+    if (wTheme === "Sky") themeBg = "bg-gradient-to-r from-sky-400 to-blue-500";
+    if (wTheme === "Garden") themeBg = "bg-gradient-to-r from-emerald-450 to-teal-600";
+    if (wTheme === "Midnight") themeBg = "bg-[#0D0A1A]";
+
+    const newId = `event-${Date.now()}`;
+    const newCelebration = {
+      id: newId,
+      title: wTitle || `${chosenRecipient}'s Celebration`,
+      recipient: chosenRecipient,
+      relation: relation,
+      status: "live",
+      date: dateStr,
+      contributors: 0,
+      raised: 0,
+      target: wGoalFund || 500,
+      icon: chosenIcon,
+      color: themeBg,
+      progress: 0
+    };
+
+    // Add to state list
+    setEvents(prev => [newCelebration, ...prev]);
+
+    // Full screen Confetti blast!
+    confetti({
+      particleCount: 150,
+      spread: 80,
+      origin: { y: 0.6 }
+    });
+
+    triggerToast("Celebration published successfully! 🎉");
+    setActiveTab("events");
+    setWizardStep(1);
+  };
+
+  // Theme Gradients configurations
+  const themeGradients: Record<string, string> = {
+    Celestial: "from-purple-800 via-purple-600 to-indigo-700",
+    Bloom: "from-pink-600 via-pink-500 to-rose-600",
+    Golden: "from-amber-500 via-orange-500 to-red-500",
+    Sky: "from-sky-500 via-blue-500 to-indigo-600",
+    Garden: "from-emerald-500 via-teal-500 to-emerald-600",
+    Midnight: "from-zinc-900 via-slate-800 to-zinc-950",
+    Peach: "from-pink-400 via-rose-450 to-orange-400",
+    Sago: "from-teal-500 via-emerald-400 to-emerald-600",
+  };
+
+  // Recipient details autofill on select
+  const handleSelectRecipient = (name: string) => {
+    setWRecipient(name);
+    setIsRecipientDropdownOpen(false);
+
+    // If matches a network person, auto pre-fill date
+    const matched = networkPeople.find(p => p.name === name);
+    if (matched) {
+      // birthday details mapper
+      const currentYear = new Date().getFullYear();
+      let parts = matched.milestoneDate.split(" ");
+      if (parts.length === 2) {
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const mIdx = monthNames.indexOf(parts[0]) + 1;
+        const monthStr = mIdx < 10 ? `0${mIdx}` : `${mIdx}`;
+        const dayVal = parseInt(parts[1]);
+        const dayStr = dayVal < 10 ? `0${dayVal}` : `${dayVal}`;
+        setWDate(`${currentYear}-${monthStr}-${dayStr}`);
+      }
+    }
+  };
+
   // Filter calculation variables for Events
   const countAll = events.length;
   const countLive = events.filter(e => e.status === "live").length;
@@ -691,12 +823,760 @@ export default function Dashboard() {
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
+  // ----------------------------------------------------
+  // CONDITIONAL RENDER: MULTI-STEP CREATION WIZARD
+  // ----------------------------------------------------
+  if (activeTab === "create-celebration") {
+    
+    // Choose selected type icon for preview
+    let previewIcon = "🎂";
+    if (wType === "Wedding") previewIcon = "💍";
+    if (wType === "Anniversary") previewIcon = "🥂";
+    if (wType === "Graduation") previewIcon = "🎓";
+    if (wType === "Baby Shower") previewIcon = "👶";
+    if (wType === "Retirement") previewIcon = "🌅";
+    if (wType === "Promotion") previewIcon = "🏆";
+    if (wType === "Work Anniversary") previewIcon = "🏢";
+    if (wType === "Custom") previewIcon = "✨";
+
+    const selectedGradient = themeGradients[wTheme] || "from-purple-800 via-purple-600 to-indigo-700";
+
+    return (
+      <div className="min-h-screen bg-[#FAF8FF] flex flex-col font-sans text-zinc-800 relative select-none">
+        
+        {/* Toast Popup inside wizard */}
+        {toastMessage && (
+          <div className="fixed top-6 right-6 bg-[#0D0A1A] text-white px-5 py-3 rounded-full flex items-center gap-2.5 shadow-xl z-[999] animate-in fade-in slide-in-from-top duration-300 font-medium text-xs border border-purple-50/25">
+            <Check className="size-4 text-emerald-400" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+
+        {/* Wizard Topbar header */}
+        <header className="h-[80px] bg-white border-b border-purple-100/50 flex items-center justify-between px-6 lg:px-12 sticky top-0 z-40 shrink-0">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => {
+                setActiveTab("events");
+                setWizardStep(1);
+              }} 
+              className="p-2 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 rounded-full transition-all"
+            >
+              <X className="size-5" />
+            </button>
+            <span className="font-extrabold text-sm text-zinc-950 tracking-tight">New Celebration</span>
+          </div>
+          <Button 
+            onClick={() => {
+              triggerToast("Draft saved successfully!");
+              setActiveTab("events");
+              setWizardStep(1);
+            }}
+            variant="outline" 
+            className="border-purple-200 text-zinc-700 bg-white hover:bg-purple-50 rounded-lg px-4 h-[38px] text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5"
+          >
+            <Save className="size-4" /> Save draft
+          </Button>
+        </header>
+
+        {/* Wizard Main Grid layout */}
+        <div className="flex-1 flex flex-col lg:flex-row relative">
+          
+          {/* Wizard Steps indicator Sidebar */}
+          <aside className="w-full lg:w-[260px] bg-[#FAF8FF] lg:bg-white border-b lg:border-r border-purple-100/50 shrink-0 p-6 flex flex-row lg:flex-col gap-4 lg:gap-7 items-start overflow-x-auto lg:overflow-x-visible">
+            {[
+              { num: 1, label: "Basics", desc: "Name, date, and type" },
+              { num: 2, label: "Design", desc: "Headline, theme, and layout" },
+              { num: 3, label: "WishPool", desc: "Goal, amounts, and payments" },
+              { num: 4, label: "Publish", desc: "Review and go live" }
+            ].map((stepItem) => {
+              const isActive = wizardStep === stepItem.num;
+              const isCompleted = wizardStep > stepItem.num;
+              return (
+                <div key={stepItem.num} className="flex items-center gap-3.5 text-left min-w-[150px] lg:min-w-0">
+                  <div className={`size-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${
+                    isActive 
+                      ? "bg-[#7C3AED] text-white shadow-md shadow-purple-600/10" 
+                      : isCompleted 
+                        ? "bg-[#009966] text-white" 
+                        : "bg-purple-50 text-zinc-400 border border-purple-100/30"
+                  }`}>
+                    {isCompleted ? <Check className="size-3.5" /> : stepItem.num}
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className={`text-xs font-bold transition-colors ${
+                      isActive ? "text-[#7C3AED]" : isCompleted ? "text-[#009966]" : "text-zinc-500"
+                    }`}>{stepItem.label}</span>
+                    <span className="text-[10px] text-zinc-400 font-light hidden lg:block mt-0.5 leading-none">{stepItem.desc}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </aside>
+
+          {/* Form Content + Preview container */}
+          <div className="flex-1 flex flex-col xl:flex-row p-6 lg:p-12 gap-8 lg:gap-12 overflow-y-auto max-h-[calc(100vh-80px)] items-start">
+            
+            {/* Left Column: Form Blocks */}
+            <div className="flex-1 w-full text-left flex flex-col gap-8 pb-10">
+              
+              {/* STEP 1: BASICS FORM */}
+              {wizardStep === 1 && (
+                <div className="flex flex-col gap-6 w-full animate-in fade-in duration-200">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-zinc-950 tracking-tight leading-none">Event Basics</h2>
+                    <span className="text-xs text-zinc-400 font-light mt-1.5 block">Name, date, and type</span>
+                  </div>
+
+                  {/* Input 1: Event Title */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-zinc-700">Event title *</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={wTitle}
+                      onChange={(e) => setWTitle(e.target.value)}
+                      placeholder="e.g. Emma's 30th Birthday" 
+                      className="bg-white border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[46px] px-3.5 text-sm text-zinc-900 outline-none w-full transition-all"
+                    />
+                  </div>
+
+                  {/* Input 2: Event Type Category Buttons Grid */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-zinc-700">Event type *</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                      {[
+                        { label: "Birthday", emoji: "🎂" },
+                        { label: "Wedding", emoji: "💍" },
+                        { label: "Anniversary", emoji: "🥂" },
+                        { label: "Graduation", emoji: "🎓" },
+                        { label: "Baby Shower", emoji: "👶" },
+                        { label: "Retirement", emoji: "🌅" },
+                        { label: "Promotion", emoji: "🏆" },
+                        { label: "Work Anniversary", emoji: "🏢" },
+                        { label: "Custom", emoji: "✨" },
+                      ].map((item) => {
+                        const isSel = wType === item.label;
+                        return (
+                          <button
+                            key={item.label}
+                            type="button"
+                            onClick={() => {
+                              setWType(item.label);
+                              setWHeadline(item.label);
+                            }}
+                            className={`h-[48px] rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all ${
+                              isSel 
+                                ? "border-[#7C3AED] bg-purple-50/50 text-[#7C3AED] shadow-2xs" 
+                                : "border-purple-100 bg-white hover:bg-purple-50/10 text-zinc-650"
+                            }`}
+                          >
+                            <span>{item.emoji}</span>
+                            <span>{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Input 3 & 4: Recipient Select Dropdown + Date */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5.5">
+                    
+                    {/* Recipient Dropdown */}
+                    <div className="flex flex-col gap-1.5 relative" ref={recipientDropdownRef}>
+                      <label className="text-xs font-bold text-zinc-700">Recipient *</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsRecipientDropdownOpen(!isRecipientDropdownOpen)}
+                        className="bg-white border border-purple-100 hover:border-[#7C3AED] rounded-lg h-[46px] px-3.5 text-xs text-zinc-700 transition-colors flex items-center justify-between w-full text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <User className="size-4 text-zinc-400" />
+                          <span>{wRecipient || "Select recipient..."}</span>
+                        </div>
+                        <ChevronDown className="size-4 text-zinc-400" />
+                      </button>
+
+                      {isRecipientDropdownOpen && (
+                        <div className="absolute left-0 top-[74px] bg-white border border-purple-100 rounded-xl shadow-xl w-full py-1.5 z-50 max-h-[220px] overflow-y-auto animate-in fade-in slide-in-from-top-3 duration-200">
+                          <button 
+                            type="button"
+                            onClick={() => handleSelectRecipient("Someone else")}
+                            className="w-full h-[38px] px-4 text-left text-xs font-bold hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors border-b border-zinc-100 text-purple-650"
+                          >
+                            Someone else
+                          </button>
+                          {networkPeople.map((person) => (
+                            <button
+                              key={person.id}
+                              type="button"
+                              onClick={() => handleSelectRecipient(person.name)}
+                              className={`w-full h-[38px] px-4 text-left text-xs font-semibold hover:bg-purple-50 hover:text-[#7C3AED] flex items-center justify-between transition-colors ${
+                                wRecipient === person.name ? "text-[#7C3AED] bg-purple-50/50" : "text-zinc-700"
+                              }`}
+                            >
+                              <span>{person.name} ({person.relation})</span>
+                              {wRecipient === person.name && <Check className="size-3.5 text-[#7C3AED]" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Target Date */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-zinc-700">Event date *</label>
+                      <input 
+                        type="date" 
+                        required 
+                        value={wDate}
+                        onChange={(e) => setWDate(e.target.value)}
+                        className="bg-white border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[46px] px-3.5 text-sm text-zinc-900 outline-none w-full transition-all"
+                      />
+                    </div>
+
+                  </div>
+
+                  {/* Conditionally show Custom Recipient name input */}
+                  {wRecipient === "Someone else" && (
+                    <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2 duration-200">
+                      <label className="text-xs font-bold text-[#7C3AED]">Recipient name *</label>
+                      <input 
+                        type="text" 
+                        required 
+                        value={wRecipientCustom}
+                        onChange={(e) => setWRecipientCustom(e.target.value)}
+                        placeholder="Enter their full name..." 
+                        className="bg-white border border-[#7C3AED] focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] rounded-lg h-[46px] px-3.5 text-sm text-zinc-900 outline-none w-full transition-all"
+                      />
+                    </div>
+                  )}
+
+                  {/* Input 5: Description Story */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-zinc-700">Description</label>
+                      <span className="text-[10px] text-zinc-400">{wDescription.length}/400</span>
+                    </div>
+                    <textarea 
+                      rows={3}
+                      maxLength={400}
+                      value={wDescription}
+                      onChange={(e) => setWDescription(e.target.value)}
+                      placeholder="Share the story behind this celebration. Why is it special? What will the gift be used for?"
+                      className="bg-white border border-purple-100 focus:border-[#7C3AED] rounded-lg p-3 text-sm text-zinc-800 outline-none w-full transition-all resize-none"
+                    />
+                  </div>
+
+                  {/* Input 6: Cover theme Gradient Cards selector */}
+                  <div className="flex flex-col gap-2.5">
+                    <label className="text-xs font-bold text-zinc-700">Cover theme *</label>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+                      {[
+                        { name: "Celestial", g: "from-purple-500 to-indigo-600" },
+                        { name: "Bloom", g: "from-pink-500 to-rose-600" },
+                        { name: "Golden", g: "from-amber-400 to-orange-500" },
+                        { name: "Sky", g: "from-sky-400 to-blue-500" },
+                        { name: "Garden", g: "from-emerald-400 to-teal-500" },
+                        { name: "Midnight", g: "from-zinc-800 to-slate-950" },
+                        { name: "Peach", g: "from-pink-300 via-rose-350 to-orange-400" },
+                        { name: "Sago", g: "from-teal-400 to-emerald-500" }
+                      ].map((th) => {
+                        const isThSel = wTheme === th.name;
+                        return (
+                          <button
+                            key={th.name}
+                            type="button"
+                            onClick={() => setWTheme(th.name)}
+                            className={`flex flex-col rounded-xl overflow-hidden border-2 text-center transition-all aspect-square ${
+                              isThSel ? "border-[#7C3AED] scale-[1.03] shadow-xs" : "border-purple-100 hover:opacity-90"
+                            }`}
+                          >
+                            <div className={`flex-grow bg-gradient-to-tr ${th.g}`} />
+                            <span className="text-[9px] font-bold text-zinc-500 py-1">{th.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Input 7: Participant Invite tags */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-zinc-700">Invite Participants</label>
+                    <form onSubmit={handleAddInvitee} className="flex gap-2 w-full">
+                      <input 
+                        type="email" 
+                        value={wInviteEmail}
+                        onChange={(e) => setWInviteEmail(e.target.value)}
+                        placeholder="participant@example.com" 
+                        className="bg-white border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[44px] px-3.5 text-xs text-zinc-800 outline-none w-full transition-all"
+                      />
+                      <Button 
+                        type="submit"
+                        className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold h-[44px] px-5 rounded-lg shrink-0 text-xs transition-colors"
+                      >
+                        + Add
+                      </Button>
+                    </form>
+
+                    {/* Invite tags list container */}
+                    <div className="flex flex-wrap gap-2 mt-1.5">
+                      {wInvitees.map((email) => (
+                        <div 
+                          key={email}
+                          className="bg-[#F8F6FF] border border-purple-100 text-[#7C3AED] text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1.5 select-none"
+                        >
+                          <span>{email}</span>
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveInvitee(email)}
+                            className="hover:text-rose-600 transition-colors"
+                          >
+                            <X className="size-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <span className="text-[10px] text-zinc-400 font-light mt-1">1 participant will receive an invitation email when the WishPool is published.</span>
+                  </div>
+
+                  {/* Input 8: Privacy Box Selector Cards */}
+                  <div className="flex flex-col gap-2.5">
+                    <label className="text-xs font-bold text-zinc-700">Privacy *</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {[
+                        { val: "Private", title: "Private", desc: "Only invited contributors can see it", icon: LockKeyhole },
+                        { val: "Public", title: "Public", desc: "Anyone with the link can view and contribute", icon: Globe }
+                      ].map((priv) => {
+                        const isPrivSel = wPrivacy === priv.val;
+                        const PrivIcon = priv.icon;
+                        return (
+                          <button
+                            key={priv.val}
+                            type="button"
+                            onClick={() => setWPrivacy(priv.val)}
+                            className={`p-4 rounded-xl border text-left flex items-start gap-3.5 transition-all ${
+                              isPrivSel 
+                                ? "border-[#7C3AED] bg-purple-50/20 shadow-2xs" 
+                                : "border-purple-100 bg-white hover:bg-[#FAF8FF]/30"
+                            }`}
+                          >
+                            <div className={`p-2.5 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${
+                              isPrivSel ? "border-purple-200 bg-purple-50 text-[#7C3AED]" : "border-zinc-100 bg-zinc-50 text-zinc-400"
+                            }`}>
+                              <PrivIcon className="size-4.5" />
+                            </div>
+                            <div className="flex flex-col select-none">
+                              <span className="text-xs font-extrabold text-zinc-800">{priv.title}</span>
+                              <span className="text-[10.5px] text-zinc-450 mt-1 leading-normal font-light">{priv.desc}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* STEP 2: DESIGN FORM */}
+              {wizardStep === 2 && (
+                <div className="flex flex-col gap-6 w-full animate-in fade-in duration-200">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-zinc-950 tracking-tight leading-none">Public Page Design</h2>
+                    <span className="text-xs text-zinc-400 font-light mt-1.5 block">Headline, theme, and layout</span>
+                  </div>
+
+                  {/* Copy & Messaging card box */}
+                  <div className="bg-white border border-purple-100/60 rounded-[20px] p-6 flex flex-col gap-5 shadow-2xs">
+                    <h3 className="font-extrabold text-zinc-900 text-sm border-b border-zinc-100 pb-3">Copy & Messaging</h3>
+                    
+                    {/* Page Headline */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-zinc-700">Page headline</label>
+                      <input 
+                        type="text" 
+                        value={wHeadline}
+                        onChange={(e) => setWHeadline(e.target.value)}
+                        placeholder="e.g. A Special Celebration" 
+                        className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[46px] px-3.5 text-sm text-zinc-900 outline-none w-full transition-all"
+                      />
+                    </div>
+
+                    {/* Category info */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-zinc-700">Category</label>
+                      <select 
+                        value={wType}
+                        onChange={(e) => {
+                          setWType(e.target.value);
+                          setWHeadline(e.target.value);
+                        }}
+                        className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[46px] px-3 text-sm text-zinc-800 outline-none w-full transition-all"
+                      >
+                        <option value="Birthday">Birthday</option>
+                        <option value="Wedding">Wedding</option>
+                        <option value="Anniversary">Anniversary</option>
+                        <option value="Graduation">Graduation</option>
+                        <option value="Baby Shower">Baby Shower</option>
+                        <option value="Retirement">Retirement</option>
+                        <option value="Promotion">Promotion</option>
+                        <option value="Work Anniversary">Work Anniversary</option>
+                        <option value="Custom">Custom</option>
+                      </select>
+                      <span className="text-[10px] text-zinc-400 font-light mt-0.5">Choose the celebration type to load matching welcome messages</span>
+                    </div>
+
+                    {/* Welcome Message templates dropdown */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-zinc-700">Welcome message</label>
+                      <select 
+                        value={wWelcomeMsg}
+                        onChange={(e) => setWWelcomeMsg(e.target.value)}
+                        className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[46px] px-3 text-sm text-zinc-808 outline-none w-full transition-all"
+                      >
+                        <option value="Join us in making this moment extra special!">Join us in making this moment extra special!</option>
+                        <option value="Let's make this milestone unforgettable with gifts and wishes!">Let's make this milestone unforgettable with gifts and wishes!</option>
+                        <option value="Contribute to the goal and leave a heartfelt wish.">Contribute to the goal and leave a heartfelt wish.</option>
+                      </select>
+                      <span className="text-[10px] text-zinc-400 font-light mt-0.5">Choose one of the 10 pre-written messages for this category</span>
+                    </div>
+
+                  </div>
+
+                  {/* Theme Gradient selector duplicated */}
+                  <div className="bg-white border border-purple-100/60 rounded-[20px] p-6 flex flex-col gap-5 shadow-2xs">
+                    <h3 className="font-extrabold text-zinc-900 text-sm border-b border-zinc-100 pb-3">Cover Theme</h3>
+                    
+                    <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-8 gap-3 mt-2">
+                      {[
+                        { name: "Celestial", g: "from-purple-500 to-indigo-600" },
+                        { name: "Bloom", g: "from-pink-500 to-rose-600" },
+                        { name: "Golden", g: "from-amber-400 to-orange-500" },
+                        { name: "Sky", g: "from-sky-400 to-blue-500" },
+                        { name: "Garden", g: "from-emerald-400 to-teal-500" },
+                        { name: "Midnight", g: "from-zinc-800 to-slate-950" },
+                        { name: "Peach", g: "from-pink-300 via-rose-350 to-orange-400" },
+                        { name: "Sago", g: "from-teal-400 to-emerald-500" }
+                      ].map((th) => {
+                        const isThSel = wTheme === th.name;
+                        return (
+                          <button
+                            key={th.name}
+                            type="button"
+                            onClick={() => setWTheme(th.name)}
+                            className={`flex flex-col rounded-xl overflow-hidden border-2 text-center transition-all aspect-square ${
+                              isThSel ? "border-[#7C3AED] scale-[1.03]" : "border-purple-100 hover:opacity-90"
+                            }`}
+                          >
+                            <div className={`flex-grow bg-gradient-to-tr ${th.g}`} />
+                            <span className="text-[8.5px] font-bold text-zinc-500 py-1 leading-none">{th.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* STEP 3: WISHPOOL SETTINGS */}
+              {wizardStep === 3 && (
+                <div className="flex flex-col gap-6 w-full animate-in fade-in duration-200">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-zinc-950 tracking-tight leading-none">WishPool Setup</h2>
+                    <span className="text-xs text-zinc-400 font-light mt-1.5 block">Goal details, amounts, and payments integration</span>
+                  </div>
+
+                  {/* Fund Details Card */}
+                  <div className="bg-white border border-purple-100/60 rounded-[20px] p-6 flex flex-col gap-5 shadow-2xs">
+                    <h3 className="font-extrabold text-zinc-900 text-sm border-b border-zinc-100 pb-3">Fund settings</h3>
+
+                    {/* Goal Target amount */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-zinc-700">WishPool goal ($) *</label>
+                      <input 
+                        type="number" 
+                        required 
+                        value={wGoalFund}
+                        onChange={(e) => setWGoalFund(parseFloat(e.target.value) || 0)}
+                        placeholder="e.g. 1000" 
+                        className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[46px] px-3.5 text-sm text-zinc-900 outline-none w-full transition-all font-mono"
+                      />
+                    </div>
+
+                    {/* Custom Amount toggle switch */}
+                    <div className="flex items-center justify-between gap-6 py-2 border-t border-zinc-100 mt-2 pt-4">
+                      <div className="flex flex-col text-left">
+                        <span className="font-bold text-xs text-zinc-800 leading-tight">Allow custom amount contributions</span>
+                        <span className="text-[10px] text-zinc-400 font-light mt-1">Allows contributors to type any amount they wish.</span>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => setWAllowCustomAmount(!wAllowCustomAmount)}
+                        className={`w-11 h-6 rounded-full transition-all flex items-center p-0.5 shrink-0 ${
+                          wAllowCustomAmount ? "bg-[#7C3AED] justify-end" : "bg-zinc-200 justify-start"
+                        }`}
+                      >
+                        <span className="size-5 rounded-full bg-white shadow-md transition-all" />
+                      </button>
+                    </div>
+
+                  </div>
+
+                  {/* Stripe Connect panel */}
+                  <div className="bg-white border border-purple-100/60 rounded-[20px] p-6 flex flex-col gap-5 shadow-2xs text-left">
+                    <h3 className="font-extrabold text-zinc-900 text-sm border-b border-zinc-100 pb-3">Stripe Connection</h3>
+                    
+                    <div className="bg-zinc-50 border border-zinc-100 rounded-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 mt-1.5">
+                      <div className="flex items-start gap-3.5">
+                        <div className="size-11 rounded-lg bg-white border border-zinc-200/50 flex items-center justify-center font-bold text-purple-650 shrink-0 text-xl font-serif select-none shadow-3xs">
+                          S
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-xs text-zinc-800 leading-tight">Stripe Connect Payouts</span>
+                          <span className="text-[10.5px] text-zinc-400 font-light mt-1 leading-normal max-w-sm">
+                            Connect your bank account securely to withdraw contributions directly following the reveal.
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {wStripeConnected ? (
+                        <div className="bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-extrabold px-3 py-1.5 rounded-lg flex items-center gap-1 shrink-0 select-none shadow-3xs">
+                          <Check className="size-3.5 text-emerald-500" /> Connected
+                        </div>
+                      ) : (
+                        <Button 
+                          type="button"
+                          onClick={() => {
+                            setWStripeConnected(true);
+                            triggerToast("Stripe connected successfully!");
+                          }}
+                          className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold h-[36px] px-4 rounded-lg shrink-0 transition-colors"
+                        >
+                          Connect Stripe
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* STEP 4: REVIEW PUBLISH FORM */}
+              {wizardStep === 4 && (
+                <div className="flex flex-col gap-6 w-full animate-in fade-in duration-200 text-left">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-zinc-950 tracking-tight leading-none">Review & Publish</h2>
+                    <span className="text-xs text-zinc-400 font-light mt-1.5 block">Final check before launching the celebration page</span>
+                  </div>
+
+                  {/* Summary lists container */}
+                  <div className="bg-white border border-purple-100/60 rounded-[20px] p-6 flex flex-col gap-6 shadow-2xs">
+                    <h3 className="font-extrabold text-zinc-900 text-sm border-b border-zinc-100 pb-3">Celebration checklist</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      
+                      {/* Summary Col 1 */}
+                      <div className="flex flex-col gap-4">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">Celebration title</span>
+                          <span className="text-sm font-extrabold text-zinc-800 mt-1.5">{wTitle}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">Recipient</span>
+                          <span className="text-sm font-semibold text-zinc-700 mt-1.5">
+                            {wRecipient === "Someone else" ? wRecipientCustom : wRecipient}
+                          </span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">Category type</span>
+                          <span className="text-sm font-semibold text-zinc-700 mt-1.5">{wType}</span>
+                        </div>
+                      </div>
+
+                      {/* Summary Col 2 */}
+                      <div className="flex flex-col gap-4">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">Target date</span>
+                          <span className="text-sm font-semibold text-zinc-750 mt-1.5 leading-none">{wDate || "Not scheduled"}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">WishPool goal fund</span>
+                          <span className="text-sm font-extrabold text-[#7C3AED] font-mono mt-1.5">${wGoalFund}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">Invitees listed</span>
+                          <span className="text-sm font-semibold text-zinc-700 mt-1.5">{wInvitees.length} emails added</span>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* Final warning information bar */}
+                    <div className="bg-[#FAF8FF] border border-purple-100/50 rounded-xl p-4 flex items-start gap-3 mt-2 select-none">
+                      <Info className="size-4.5 text-[#7C3AED] shrink-0 mt-0.5" />
+                      <div className="flex flex-col text-left">
+                        <span className="font-bold text-xs text-[#7C3AED]">Ready to launch</span>
+                        <span className="text-[10px] text-zinc-500 font-light mt-1 leading-relaxed">
+                          Your celebration page will go live immediately. A secure encrypted link will be generated for contributors to leave wishes and gift money.
+                        </span>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Publish trigger buttons */}
+                  <div className="flex flex-col gap-3 mt-4">
+                    <Button 
+                      type="button" 
+                      onClick={handlePublishCelebration}
+                      className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-extrabold h-[50px] rounded-xl shadow-md shadow-purple-500/20 text-sm flex items-center justify-center gap-1.5"
+                    >
+                      Publish WishPool 🎉
+                    </Button>
+                    <span className="text-[10px] text-zinc-400 text-center font-light leading-relaxed select-none">
+                      By publishing, you agree to our Terms of Service & Payout processing rules.
+                    </span>
+                  </div>
+
+                </div>
+              )}
+
+              {/* FOOTER WIZARD NAVIGATION BUTTONS ROW */}
+              <div className="flex justify-between items-center border-t border-zinc-100 pt-6 mt-6 select-none">
+                <Button
+                  type="button"
+                  disabled={wizardStep === 1}
+                  onClick={() => setWizardStep(prev => prev - 1)}
+                  variant="outline"
+                  className="border-purple-200 text-zinc-700 hover:bg-purple-50 rounded-lg h-[40px] px-5 text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <ArrowLeft className="size-4" /> Back
+                </Button>
+
+                {wizardStep < 4 ? (
+                  <Button
+                    type="button"
+                    onClick={() => setWizardStep(prev => prev + 1)}
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg h-[40px] px-5 text-xs font-bold transition-all flex items-center gap-1.5"
+                  >
+                    Next <ArrowRight className="size-4" />
+                  </Button>
+                ) : (
+                  <div className="w-[10px]" />
+                )}
+              </div>
+
+            </div>
+
+            {/* Right Column: Interactive Mobile Live Preview */}
+            <div className="w-full xl:w-[350px] shrink-0 sticky top-[100px] flex flex-col items-center gap-4.5 select-none z-10 self-start">
+              <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#7C3AED]/75">Live Preview</span>
+              
+              {/* iPhone Container mock */}
+              <div className="relative w-[300px] h-[580px] rounded-[40px] bg-zinc-950 border-[10px] border-zinc-900 shadow-2xl overflow-hidden flex flex-col z-10 border-zinc-950">
+                
+                {/* Speaker notch */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-5 bg-zinc-900 rounded-b-xl z-50 flex items-center justify-center">
+                  <div className="w-9 h-[3px] bg-zinc-800 rounded-full" />
+                </div>
+
+                {/* Screen internal wrap */}
+                <div className={`flex-grow bg-gradient-to-tr ${selectedGradient} flex flex-col text-white pt-8 px-4 pb-4 overflow-y-auto select-none no-scrollbar transition-all duration-500`}>
+                  
+                  {/* Status header time block */}
+                  <div className="flex justify-between items-center text-[10px] font-bold px-1 opacity-90 mb-6 mt-1.5 font-mono select-none">
+                    <span>11:30</span>
+                    <div className="flex items-center gap-1">
+                      <span>•</span>
+                      <span>5G</span>
+                      <span>🔋</span>
+                    </div>
+                  </div>
+
+                  {/* Preview Banner Mockup Content */}
+                  <div className="flex-1 flex flex-col justify-start text-center gap-4.5 py-4">
+                    
+                    <span className="text-[9px] tracking-widest font-extrabold uppercase bg-white/20 px-3 py-1 rounded-full text-purple-100 w-max mx-auto">
+                      A Special Celebration
+                    </span>
+
+                    {/* Emoji header box */}
+                    <div className="size-16 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-xl flex items-center justify-center text-3xl mx-auto mt-2 animate-pulse">
+                      {previewIcon}
+                    </div>
+
+                    {/* Title & recipient details info */}
+                    <div className="flex flex-col gap-1 text-center">
+                      <h3 className="text-lg font-extrabold tracking-tight leading-snug">
+                        {wTitle || "A Special Celebration"}
+                      </h3>
+                      <p className="text-[11px] text-purple-100 opacity-90 leading-none">
+                        for {wRecipient === "Someone else" ? (wRecipientCustom || "Someone Special") : wRecipient}
+                      </p>
+                    </div>
+
+                    {/* Story description paragraph */}
+                    <p className="text-[10px] text-purple-200 bg-black/20 px-3 py-3 rounded-xl border border-white/5 max-w-[240px] leading-relaxed font-light mx-auto">
+                      {wDescription || "Share the story behind this celebration..."}
+                    </p>
+
+                    {/* Target raised Goal fund progress card preview */}
+                    <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl p-4 text-left shadow-lg mt-2 flex flex-col gap-2">
+                      <div className="flex justify-between items-start">
+                        <div className="flex flex-col text-left">
+                          <span className="text-[8.5px] uppercase font-bold tracking-wider text-purple-200 leading-none">Amount Raised</span>
+                          <span className="text-xl font-extrabold mt-1 tracking-tight font-mono text-yellow-300">$0</span>
+                        </div>
+                        <span className="text-[9px] text-purple-200 font-medium">Goal: ${wGoalFund}</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-yellow-300 w-[0%]" />
+                      </div>
+                    </div>
+
+                    {/* Mock contribution cards messages feed */}
+                    <div className="flex flex-col gap-2 mt-2">
+                      <div className="bg-white text-zinc-800 rounded-xl p-2.5 shadow-md flex gap-2 items-start text-left">
+                        <div className="size-6.5 rounded-full bg-purple-100 text-purple-700 font-extrabold text-[10px] flex items-center justify-center shrink-0">MC</div>
+                        <div className="flex flex-col w-full text-left">
+                          <div className="flex items-center justify-between">
+                            <span className="font-extrabold text-[9px] text-zinc-900 leading-none">Marcus Chen</span>
+                            <span className="font-extrabold text-[9px] text-purple-600 leading-none">$75</span>
+                          </div>
+                          <span className="text-[9.5px] text-zinc-500 font-light mt-1 italic leading-tight">"Happy birthday! 🎉"</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mock bottom cta */}
+                    <div className="bg-yellow-400 hover:bg-yellow-300 text-zinc-950 text-xs font-extrabold h-[36px] rounded-full flex items-center justify-center shadow-lg mt-4 cursor-pointer">
+                      Contribute Now
+                    </div>
+
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    );
+  }
+
+  // Filter calculation variables for Events
+  const filteredNotifsAll = filteredNotifs;
+  
   return (
     <div className="min-h-screen bg-[#FAF8FF] flex font-sans text-zinc-800 relative">
       
       {/* Toast Alert popup */}
       {toastMessage && (
-        <div className="fixed top-6 right-6 bg-[#0D0A1A] text-white px-5 py-3 rounded-full flex items-center gap-2.5 shadow-xl z-[999] animate-in fade-in slide-in-from-top duration-300 font-medium text-xs border border-purple-500/25 select-none">
+        <div className="fixed top-6 right-6 bg-[#0D0A1A] text-white px-5 py-3 rounded-full flex items-center gap-2.5 shadow-xl z-[999] animate-in fade-in slide-in-from-top duration-300 font-medium text-xs border border-purple-50/25 select-none">
           <Check className="size-4 text-emerald-400" />
           <span>{toastMessage}</span>
         </div>
@@ -718,7 +1598,10 @@ export default function Dashboard() {
               return (
                 <button
                   key={link.id}
-                  onClick={() => setActiveTab(link.id)}
+                  onClick={() => {
+                    setActiveTab(link.id);
+                    setWizardStep(1); // reset wizard
+                  }}
                   className={`flex items-center justify-between w-full h-[48px] px-4 rounded-full text-sm font-medium transition-all ${
                     isActive 
                       ? "bg-[#7C3AED] text-white shadow-md shadow-purple-600/10" 
@@ -787,6 +1670,7 @@ export default function Dashboard() {
                       onClick={() => {
                         setActiveTab(link.id);
                         setIsMobileMenuOpen(false);
+                        setWizardStep(1);
                       }}
                       className={`flex items-center justify-between w-full h-[48px] px-4 rounded-full text-sm font-medium transition-all ${
                         isActive 
@@ -895,7 +1779,7 @@ export default function Dashboard() {
                     className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all ${
                       isSelected
                         ? "bg-[#7C3AED] text-white shadow-sm"
-                        : "bg-white text-zinc-500 border border-purple-50 hover:bg-purple-50/50"
+                        : "bg-white text-zinc-505 border border-purple-50 hover:bg-purple-50/50"
                     }`}
                   >
                     <TabIcon className="size-4" />
@@ -916,7 +1800,7 @@ export default function Dashboard() {
                       <img src={profileAvatar} alt="Profile avatar" className="size-20 rounded-2xl object-cover border border-purple-100 shadow-sm" />
                       <button 
                         onClick={() => triggerToast("Avatar picker opened")}
-                        className="absolute -bottom-1 -right-1 size-7 bg-white hover:bg-purple-50 text-zinc-600 rounded-full border border-purple-100 shadow-md flex items-center justify-center hover:text-[#7C3AED] transition-colors"
+                        className="absolute -bottom-1 -right-1 size-7 bg-white hover:bg-purple-50 text-zinc-650 rounded-full border border-purple-100 shadow-md flex items-center justify-center hover:text-[#7C3AED] transition-colors"
                       >
                         <Camera className="size-3.5" />
                       </button>
@@ -1063,7 +1947,7 @@ export default function Dashboard() {
                     {/* Toggle item 2: Goal reached */}
                     <div className="p-6 flex items-center justify-between gap-6 hover:bg-zinc-50/10 transition-colors">
                       <div className="flex flex-col text-left">
-                        <span className="font-bold text-sm text-zinc-800 leading-tight">Goal reached</span>
+                        <span className="font-bold text-sm text-zinc-850 leading-tight">Goal reached</span>
                         <span className="text-xs text-zinc-400 font-light mt-1">When your WishPool hits 100%</span>
                       </div>
                       <button 
@@ -1242,7 +2126,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex flex-col text-left">
-                      <span className="font-bold text-sm text-zinc-800">Authenticator app</span>
+                      <span className="font-bold text-sm text-zinc-805">Authenticator app</span>
                       <span className="text-xs text-zinc-400 font-light mt-0.5">Not enabled</span>
                     </div>
                     <Button 
@@ -1308,7 +2192,7 @@ export default function Dashboard() {
                       className="bg-white border border-rose-100 hover:border-rose-300 rounded-xl p-4.5 flex items-center justify-between gap-4 cursor-pointer text-left transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <LogOut className="size-4.5 text-rose-500" />
+                        <LogOut className="size-4.5 text-rose-505" />
                         <span className="text-xs font-bold text-rose-600">Sign out of all devices</span>
                       </div>
                       <ChevronRight className="size-4 text-rose-400" />
@@ -1338,7 +2222,7 @@ export default function Dashboard() {
             {/* Header row */}
             <div className="flex items-center justify-between text-left">
               <div className="flex flex-col gap-1">
-                <h1 className="text-3xl font-extrabold text-zinc-950 tracking-tight leading-tight select-none">Notifications</h1>
+                <h1 className="text-3xl font-extrabold text-zinc-955 tracking-tight leading-tight select-none">Notifications</h1>
                 <span className="text-xs text-zinc-500 font-light select-none">Manage your account, notifications, and preferences</span>
               </div>
               <Button 
@@ -1366,7 +2250,7 @@ export default function Dashboard() {
                   className={`flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-bold transition-all ${
                     notifFilter === pill.filterId
                       ? "bg-[#7C3AED] text-white shadow-sm"
-                      : "bg-white text-zinc-500 border border-purple-50 hover:bg-purple-50/50"
+                      : "bg-white text-zinc-505 border border-purple-50 hover:bg-purple-50/50"
                   }`}
                 >
                   <span>{pill.label}</span>
@@ -1425,7 +2309,7 @@ export default function Dashboard() {
                 <h4 className="text-xs font-extrabold text-zinc-400 tracking-wider select-none uppercase">Earlier</h4>
                 {earlierNotifs.length === 0 && unreadNotifs.length === 0 ? (
                   <div className="w-full py-20 bg-white border border-dashed border-purple-100 rounded-3xl flex flex-col items-center justify-center gap-3 text-center">
-                    <Bell className="size-12 text-zinc-200" />
+                    <Bell className="size-12 text-zinc-205" />
                     <span className="font-bold text-zinc-800 text-sm mt-2">All caught up!</span>
                     <p className="text-xs text-zinc-400 font-light max-w-xs leading-relaxed">
                       You have no notifications in this category.
@@ -1444,8 +2328,8 @@ export default function Dashboard() {
                             {n.icon}
                           </div>
                           <div className="flex flex-col">
-                            <span className="font-bold text-zinc-855 text-[14px] leading-tight opacity-80">{n.title}</span>
-                            <p className="text-[13px] text-zinc-505 font-light mt-1.5 leading-relaxed">{n.message}</p>
+                            <span className="font-bold text-zinc-850 text-[14px] leading-tight opacity-80">{n.title}</span>
+                            <p className="text-[13px] text-zinc-500 font-light mt-1.5 leading-relaxed">{n.message}</p>
                             <span className="text-[10px] text-zinc-400 font-light mt-2">{n.time}</span>
                           </div>
                         </div>
@@ -1499,7 +2383,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[13px] font-semibold text-zinc-400">Total contributors</span>
-                  <span className="text-2xl font-extrabold text-zinc-950 mt-1">124</span>
+                  <span className="text-2xl font-extrabold text-zinc-955 mt-1">124</span>
                 </div>
               </div>
 
@@ -1563,10 +2447,10 @@ export default function Dashboard() {
 
           </div>
         ) : activeTab === "network" ? (
-          <div className="flex-1 overflow-y-auto p-6 lg:p-12 flex flex-col gap-8 w-full">
+          <div className="flex-1 overflow-y-auto p-6 lg:p-12 flex flex-col gap-8 w-full text-left">
             
             {/* Network Header Row */}
-            <div className="flex justify-between items-start text-left">
+            <div className="flex justify-between items-start">
               <div className="flex flex-col">
                 <h1 className="text-3xl font-extrabold text-zinc-950 tracking-tight leading-tight select-none">Celebration Network</h1>
                 <span className="text-xs text-purple-600 font-bold mt-1 select-none">{netCountAll} people · Track milestones and create celebrations</span>
@@ -1597,7 +2481,7 @@ export default function Dashboard() {
                     <Users className="size-4.5" />
                   </div>
                 </div>
-                <div className="flex flex-col text-left gap-[9.84px]">
+                <div className="flex flex-col gap-[9.84px]">
                   <span className="text-2xl lg:text-3xl font-extrabold tracking-tight leading-none">{netCountAll}</span>
                   <span className="text-[11px] font-medium opacity-80">Contacts saved</span>
                 </div>
@@ -1611,7 +2495,7 @@ export default function Dashboard() {
                     <CalendarRange className="size-4.5" />
                   </div>
                 </div>
-                <div className="flex flex-col text-left gap-[9.84px]">
+                <div className="flex flex-col gap-[9.84px]">
                   <span className="text-2xl lg:text-3xl font-extrabold tracking-tight leading-none">14</span>
                   <span className="text-[11px] font-medium opacity-80">Dates active</span>
                 </div>
@@ -1625,7 +2509,7 @@ export default function Dashboard() {
                     <Clock className="size-4.5" />
                   </div>
                 </div>
-                <div className="flex flex-col text-left gap-[9.84px]">
+                <div className="flex flex-col gap-[9.84px]">
                   <span className="text-2xl lg:text-3xl font-extrabold tracking-tight leading-none">
                     {networkPeople.filter(p => p.daysLeft <= 30).length}
                   </span>
@@ -1641,7 +2525,7 @@ export default function Dashboard() {
                     <Megaphone className="size-4.5" />
                   </div>
                 </div>
-                <div className="flex flex-col text-left gap-[9.84px]">
+                <div className="flex flex-col gap-[9.84px]">
                   <span className="text-2xl lg:text-3xl font-extrabold tracking-tight leading-none">3</span>
                   <span className="text-[11px] font-medium opacity-80">Completed registry pools</span>
                 </div>
@@ -1658,7 +2542,7 @@ export default function Dashboard() {
                   type="text" 
                   placeholder="Search by name, relationship, or tag..." 
                   value={networkSearchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => setNetworkSearchQuery(e.target.value)}
                   className="w-full bg-white border border-purple-100/60 focus:border-[#7C3AED] rounded-full h-[50px] pl-11 pr-6 text-xs text-zinc-900 placeholder:text-zinc-400 outline-none transition-all shadow-2xs"
                 />
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
@@ -1730,14 +2614,14 @@ export default function Dashboard() {
                   className={`flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-bold transition-all ${
                     networkFilter === pill.filterId
                       ? "bg-[#7C3AED] text-white shadow-sm"
-                      : "bg-white text-zinc-500 border border-purple-50 hover:bg-purple-50/50"
+                      : "bg-white text-zinc-505 border border-purple-50 hover:bg-purple-50/50"
                   }`}
                 >
                   <span>{pill.label}</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-extrabold ${
                     networkFilter === pill.filterId
                       ? "bg-white/20 text-white"
-                      : "bg-purple-50 text-zinc-500"
+                      : "bg-purple-50 text-zinc-505"
                   }`}>
                     {pill.count}
                   </span>
@@ -1815,11 +2699,12 @@ export default function Dashboard() {
                               </button>
                               <button 
                                 onClick={() => {
-                                  setFormTitle(`${p.name}'s Celebration`);
-                                  setFormRecipient(p.name);
-                                  setFormRelation(p.relation);
-                                  setFormTarget("1000");
-                                  setActiveModal("create");
+                                  setWTitle(`${p.name}'s Celebration`);
+                                  setWRecipient(p.name);
+                                  setWType("Birthday");
+                                  setWDescription(`${p.name}'s milestone is coming up. Help them celebrate!`);
+                                  setActiveTab("create-celebration");
+                                  setWizardStep(1);
                                   setActiveDropdownId(null);
                                 }}
                                 className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors"
@@ -1882,20 +2767,25 @@ export default function Dashboard() {
 
           </div>
         ) : activeTab === "events" ? (
-          <div className="flex-1 overflow-y-auto p-6 lg:p-12 flex flex-col gap-8 w-full">
+          <div className="flex-1 overflow-y-auto p-6 lg:p-12 flex flex-col gap-8 w-full text-left">
             
             {/* Events Header row */}
-            <div className="flex justify-between items-start text-left">
+            <div className="flex justify-between items-start">
               <div className="flex flex-col">
-                <h1 className="text-3xl font-extrabold text-zinc-950 tracking-tight leading-tight select-none">Events</h1>
+                <h1 className="text-3xl font-extrabold text-zinc-955 tracking-tight leading-tight select-none">Events</h1>
                 <span className="text-xs text-purple-600 font-bold mt-1 select-none">{countAll} total celebrations</span>
               </div>
               <Button 
                 onClick={() => {
-                  setFormTitle("");
-                  setFormRecipient("");
-                  setFormTarget("1000");
-                  setActiveModal("create");
+                  setWTitle("Emma's 30th Birthday");
+                  setWType("Birthday");
+                  setWRecipient("Emma Johnson");
+                  setWDate("2025-07-15");
+                  setWDescription("Emma's 30th Birthday is coming up. Let's fill this pool with love!");
+                  setWTheme("Celestial");
+                  setWInvitees(["mdsohanurrohman310@gmail.com"]);
+                  setActiveTab("create-celebration");
+                  setWizardStep(1);
                 }}
                 className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-full px-5 h-[44px] text-xs font-bold transition-all shadow-md shadow-purple-600/20 flex items-center gap-2"
               >
@@ -1938,7 +2828,7 @@ export default function Dashboard() {
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-extrabold ${
                     selectedFilter === pill.filterId
                       ? "bg-white/20 text-white"
-                      : "bg-purple-50 text-zinc-500"
+                      : "bg-purple-50 text-zinc-550"
                   }`}>
                     {pill.count}
                   </span>
@@ -1968,7 +2858,6 @@ export default function Dashboard() {
 
                   // Progress styles
                   const displayProgress = Math.min(ev.progress, 100);
-                  const isFinished = ev.progress >= 100;
                   const progressTrackColor = ev.status === "closed" ? "bg-[#009966]" : ev.status === "revealed" ? "bg-gradient-to-r from-orange-500 to-red-500" : ev.status === "archived" ? "bg-[#7C3AED]" : "bg-gradient-to-r from-purple-500 to-pink-500";
 
                   return (
@@ -2095,7 +2984,7 @@ export default function Dashboard() {
                 <h1 className="text-3xl lg:text-4xl font-extrabold text-zinc-900 tracking-tight leading-tight select-none">
                   Good morning, <span className="italic font-serif text-[#7C3AED]">Jamie</span>
                 </h1>
-                <p className="text-sm text-zinc-500 font-light">
+                <p className="text-sm text-zinc-505 font-light">
                   You have <span className="font-bold text-[#7C3AED]">2</span> active WishPools and <span className="font-bold text-[#FF2056]">{unreadNotifCount}</span> unread notifications.
                 </p>
               </div>
@@ -2110,10 +2999,15 @@ export default function Dashboard() {
                 </Button>
                 <Button 
                   onClick={() => {
-                    setFormTitle("");
-                    setFormRecipient("");
-                    setFormTarget("1000");
-                    setActiveModal("create");
+                    setWTitle("Emma's 30th Birthday");
+                    setWType("Birthday");
+                    setWRecipient("Emma Johnson");
+                    setWDate("2025-07-15");
+                    setWDescription("Emma's 30th Birthday is coming up. Let's fill this pool with love!");
+                    setWTheme("Celestial");
+                    setWInvitees(["mdsohanurrohman310@gmail.com"]);
+                    setActiveTab("create-celebration");
+                    setWizardStep(1);
                   }}
                   className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-full px-5 h-[44px] text-xs font-bold transition-all shadow-md shadow-purple-600/20 flex items-center gap-2"
                 >
@@ -2128,7 +3022,7 @@ export default function Dashboard() {
                 <div className="size-10 rounded-full bg-purple-100 text-[#7C3AED] flex items-center justify-center shrink-0">
                   <Clock className="size-5" />
                 </div>
-                <div className="flex flex-col">
+                <div className="flex flex-col text-left">
                   <span className="font-bold text-[#7C3AED] text-sm">Emma's birthday in 23 days</span>
                   <span className="text-[13px] text-zinc-500 font-light mt-0.5 leading-relaxed">
                     Emma's 30th Birthday is coming up. Your WishPool is at 84% — share the link to hit your goal!
@@ -2289,10 +3183,10 @@ export default function Dashboard() {
               </div>
 
               {/* Right Column details */}
-              <div className="xl:col-span-5 flex flex-col gap-8 w-full">
+              <div className="xl:col-span-5 flex flex-col gap-8 w-full text-left">
                 
                 {/* Promo Card */}
-                <div className="bg-[#7C3AED] text-white rounded-3xl p-8 text-left shadow-lg shadow-purple-600/10 flex flex-col gap-5 relative overflow-hidden select-none">
+                <div className="bg-[#7C3AED] text-white rounded-3xl p-8 shadow-lg shadow-purple-600/10 flex flex-col gap-5 relative overflow-hidden select-none">
                   <div className="absolute -top-24 -left-24 size-48 rounded-full bg-white/5 blur-2xl pointer-events-none" />
                   <div className="flex flex-col gap-1.5">
                     <span className="text-[10px] font-bold tracking-widest text-purple-200 uppercase">Why WishPool?</span>
@@ -2315,7 +3209,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Upcoming Events Box */}
-                <div className="bg-white rounded-3xl border border-purple-100/50 shadow-xs overflow-hidden text-left">
+                <div className="bg-white rounded-3xl border border-purple-100/50 shadow-xs overflow-hidden">
                   <div className="bg-purple-50/50 px-6 py-4 border-b border-purple-100/30 flex items-center justify-between">
                     <span className="font-bold text-sm text-[#7C3AED]">Upcoming Events</span>
                     <button onClick={() => setActiveTab("events")} className="text-xs font-bold text-[#7C3AED] hover:text-[#6D28D9] flex items-center">
@@ -2334,7 +3228,7 @@ export default function Dashboard() {
                         </div>
                         <div className="flex flex-col items-end gap-1 select-none">
                           <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
-                            ev.status === "live" ? "bg-rose-50 text-[#FF2056] border-rose-100" : "bg-zinc-100 text-zinc-500 border-zinc-200"
+                            ev.status === "live" ? "bg-rose-50 text-[#FF2056] border-rose-100" : "bg-zinc-100 text-zinc-505 border-zinc-200"
                           }`}>{ev.status}</span>
                         </div>
                       </div>
@@ -2350,100 +3244,7 @@ export default function Dashboard() {
 
       </main>
 
-      {/* 3. MODAL: CREATE CELEBRATION */}
-      {activeModal === "create" && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative text-left animate-in zoom-in-95 duration-250 border border-purple-100">
-            <button 
-              onClick={() => setActiveModal(null)}
-              className="absolute right-4 top-4 p-2 text-zinc-400 hover:text-zinc-800 rounded-full"
-            >
-              <X className="size-5" />
-            </button>
-            <div className="flex items-center gap-3.5 border-b border-zinc-100 pb-4 mb-5">
-              <div className="size-10 rounded-2xl bg-[#7C3AED] text-white flex items-center justify-center">
-                <Gift className="size-5" />
-              </div>
-              <h2 className="text-xl font-extrabold text-zinc-900">Create Celebration</h2>
-            </div>
-            
-            <form onSubmit={handleCreateCelebration} className="flex flex-col gap-4">
-              <div className="flex flex-col">
-                <label className="text-xs font-bold text-zinc-700 mb-1.5">Celebration Title</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="e.g. Emma's 30th Birthday" 
-                  className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] rounded-lg h-[44px] px-3.5 text-sm text-zinc-900 outline-none w-full transition-all"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col">
-                  <label className="text-xs font-bold text-zinc-700 mb-1.5">Recipient Name</label>
-                  <input 
-                    type="text" 
-                    required 
-                    value={formRecipient}
-                    onChange={(e) => setFormRecipient(e.target.value)}
-                    placeholder="e.g. Emma Johnson" 
-                    className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[44px] px-3.5 text-sm text-zinc-805 outline-none w-full transition-all"
-                  />
-                </div>
-                <div className="flex flex-col">
-                  <label className="text-xs font-bold text-zinc-700 mb-1.5">Relationship</label>
-                  <select 
-                    value={formRelation}
-                    onChange={(e) => setFormRelation(e.target.value)}
-                    className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[44px] px-3 text-sm text-zinc-800 outline-none w-full transition-all"
-                  >
-                    <option value="Sister">Sister</option>
-                    <option value="Brother">Brother</option>
-                    <option value="Friend">Friend</option>
-                    <option value="Father">Father</option>
-                    <option value="Mother">Mother</option>
-                    <option value="Colleague">Colleague</option>
-                    <option value="Nephew">Nephew</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col">
-                  <label className="text-xs font-bold text-zinc-700 mb-1.5">Target Date</label>
-                  <input 
-                    type="text" 
-                    required 
-                    value={formDate}
-                    onChange={(e) => setFormDate(e.target.value)}
-                    placeholder="e.g. Jul 15, 2025" 
-                    className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[44px] px-3.5 text-sm text-zinc-800 outline-none w-full transition-all"
-                  />
-                </div>
-                <div className="flex flex-col">
-                  <label className="text-xs font-bold text-zinc-700 mb-1.5">Goal Fund ($)</label>
-                  <input 
-                    type="number" 
-                    required
-                    value={formTarget}
-                    onChange={(e) => setFormTarget(e.target.value)}
-                    placeholder="e.g. 1000" 
-                    className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] rounded-lg h-[44px] px-3.5 text-sm text-zinc-900 outline-none w-full transition-all"
-                  />
-                </div>
-              </div>
-
-              <Button type="submit" className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold h-[44px] rounded-lg shadow-sm transition-all mt-2">
-                Create Celebration
-              </Button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 4. MODAL: EDIT CELEBRATION */}
+      {/* 3. MODAL: EDIT CELEBRATION */}
       {activeModal === "edit" && modalEvent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative text-left animate-in zoom-in-95 duration-250 border border-purple-100">
@@ -2622,7 +3423,7 @@ export default function Dashboard() {
             </button>
 
             <div className="size-12 rounded-full bg-rose-50 border border-rose-100 text-[#FF2056] flex items-center justify-center mx-auto mb-4 mt-2">
-              <Trash2 className="size-6 animate-bounce" />
+              <Trash2 className="size-5 animate-bounce" />
             </div>
 
             <h3 className="text-lg font-extrabold text-zinc-950 mb-2">Delete Celebration?</h3>
@@ -2634,7 +3435,7 @@ export default function Dashboard() {
               <Button 
                 onClick={() => setActiveModal(null)}
                 variant="outline" 
-                className="w-full border-purple-100 text-zinc-500 hover:bg-zinc-50 h-[42px] text-xs font-bold rounded-lg"
+                className="w-full border-purple-100 text-zinc-550 hover:bg-zinc-50 h-[42px] text-xs font-bold rounded-lg"
               >
                 Cancel
               </Button>
@@ -2812,7 +3613,7 @@ export default function Dashboard() {
                 <div className="bg-white border border-purple-100/50 rounded-2xl p-4 flex items-center justify-between shadow-2xs">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{modalEvent.milestoneType.includes("Wedding") ? "💍" : "🎂"}</span>
-                    <div className="flex flex-col">
+                    <div className="flex flex-col text-left">
                       <span className="font-bold text-sm text-zinc-800 leading-tight">{modalEvent.milestoneType}</span>
                       <span className="text-[10px] text-zinc-400 mt-0.5">{modalEvent.milestoneDate}</span>
                     </div>
@@ -2843,11 +3644,13 @@ export default function Dashboard() {
               <div className="grid grid-cols-2 gap-3 mt-4">
                 <Button 
                   onClick={() => {
-                    setFormTitle(`${modalEvent.name}'s Celebration`);
-                    setFormRecipient(modalEvent.name);
-                    setFormRelation(modalEvent.relation);
-                    setFormTarget("1000");
-                    setActiveModal("create");
+                    setWTitle(`${modalEvent.name}'s Celebration`);
+                    setWRecipient(modalEvent.name);
+                    setWType("Birthday");
+                    setWDescription(`${modalEvent.name}'s milestone is coming up. Help them celebrate!`);
+                    setActiveTab("create-celebration");
+                    setWizardStep(1);
+                    setActiveModal(null);
                   }}
                   className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold h-[42px] rounded-xl text-xs shadow-sm transition-all"
                 >
@@ -2863,7 +3666,7 @@ export default function Dashboard() {
                     setActiveModal("edit-person");
                   }}
                   variant="outline"
-                  className="w-full border-purple-100 text-zinc-600 bg-white hover:bg-purple-50 font-bold h-[42px] rounded-xl text-xs transition-all"
+                  className="w-full border-purple-100 text-zinc-655 bg-white hover:bg-purple-50 font-bold h-[42px] rounded-xl text-xs transition-all"
                 >
                   Edit Contact
                 </Button>
@@ -2888,7 +3691,7 @@ export default function Dashboard() {
               <Trash2 className="size-5 animate-bounce" />
             </div>
 
-            <h3 className="text-lg font-extrabold text-zinc-950 mb-2">Remove Contact?</h3>
+            <h3 className="text-lg font-extrabold text-zinc-955 mb-2">Remove Contact?</h3>
             <p className="text-xs text-zinc-400 font-light leading-relaxed mb-6">
               Are you sure you want to remove <span className="font-bold text-zinc-700">"{modalEvent.name}"</span> from your Celebration Network? This cannot be undone.
             </p>

@@ -7,9 +7,15 @@ import {
   LogOut, Plus, Search, Menu, X, DollarSign, Gift, Megaphone, 
   UserPlus, ChevronRight, ShieldCheck, Clock, Check, MoreHorizontal,
   Eye, Link2, Edit2, Archive, Trash2, CalendarDays, Award, User,
-  CalendarRange, ArrowUpDown, ChevronDown
+  CalendarRange, ArrowUpDown, ChevronDown, TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+// Import Recharts elements for analytics section
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
+  ResponsiveContainer, LineChart, Line 
+} from "recharts";
 
 // Profile Data
 const userProfile = {
@@ -58,7 +64,7 @@ const ProgressCircle = ({ percentage }: { percentage: number }) => {
 
 export default function Dashboard() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, events, network...
+  const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, events, network, analytics...
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all"); // all, live, draft, closed, revealed, archived
 
@@ -68,6 +74,12 @@ export default function Dashboard() {
   const [networkSort, setNetworkSort] = useState("milestone"); // milestone, name, recent
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
+
+  // SSR safety check mounted state
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Interactive events array
   const [events, setEvents] = useState([
@@ -256,6 +268,16 @@ export default function Dashboard() {
       pastCelebration: null
     }
   ]);
+
+  // Analytics performance dataset
+  const chartData = [
+    { month: "Jan", contributions: 300, contributors: 8 },
+    { month: "Feb", contributions: 450, contributors: 12 },
+    { month: "Mar", contributions: 300, contributors: 18 },
+    { month: "Apr", contributions: 920, contributors: 22 },
+    { month: "May", contributions: 500, contributors: 12 },
+    { month: "Jun", contributions: 840, contributors: 14 },
+  ];
 
   // Toast indicator state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -483,10 +505,8 @@ export default function Dashboard() {
       return a.name.localeCompare(b.name);
     }
     if (networkSort === "recent") {
-      // simulate recently added sorting using numerical part of id
       return b.id.localeCompare(a.id);
     }
-    // Default milestone sort: daysLeft ascending
     return a.daysLeft - b.daysLeft;
   });
 
@@ -671,8 +691,112 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* VIEW CONDITIONAL RENDER: NETWORK VIEW */}
-        {activeTab === "network" ? (
+        {/* VIEW CONDITIONAL RENDER: ANALYTICS VIEW */}
+        {activeTab === "analytics" ? (
+          <div className="flex-1 overflow-y-auto p-6 lg:p-12 flex flex-col gap-8 w-full">
+            
+            {/* Analytics Header */}
+            <div className="text-left">
+              <h1 className="text-3xl font-extrabold text-zinc-950 tracking-tight leading-tight select-none">Analytics</h1>
+              <span className="text-xs text-zinc-500 font-light mt-1 select-none">Performance across all your celebrations</span>
+            </div>
+
+            {/* Metric Cards Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 select-none">
+              
+              {/* Card 1: Total raised */}
+              <div className="bg-white border border-purple-50/70 rounded-[20px] p-6 text-left flex items-center gap-5 shadow-2xs">
+                <div className="size-12 rounded-full bg-purple-50 text-[#7C3AED] flex items-center justify-center shrink-0">
+                  <DollarSign className="size-5.5" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[13px] font-semibold text-zinc-400">Total raised</span>
+                  <span className="text-2xl font-extrabold text-zinc-950 mt-1">$8,420</span>
+                </div>
+              </div>
+
+              {/* Card 2: Avg per event */}
+              <div className="bg-white border border-purple-50/70 rounded-[20px] p-6 text-left flex items-center gap-5 shadow-2xs">
+                <div className="size-12 rounded-full bg-emerald-50 text-[#009966] flex items-center justify-center shrink-0">
+                  <TrendingUp className="size-5.5" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[13px] font-semibold text-zinc-400">Avg per event</span>
+                  <span className="text-2xl font-extrabold text-zinc-950 mt-1">$703</span>
+                </div>
+              </div>
+
+              {/* Card 3: Total contributors */}
+              <div className="bg-white border border-purple-50/70 rounded-[20px] p-6 text-left flex items-center gap-5 shadow-2xs">
+                <div className="size-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <Users className="size-5.5" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[13px] font-semibold text-zinc-400">Total contributors</span>
+                  <span className="text-2xl font-extrabold text-zinc-950 mt-1">124</span>
+                </div>
+              </div>
+
+              {/* Card 4: Events created */}
+              <div className="bg-white border border-purple-50/70 rounded-[20px] p-6 text-left flex items-center gap-5 shadow-2xs">
+                <div className="size-12 rounded-full bg-rose-50 text-[#FF2056] flex items-center justify-center shrink-0">
+                  <Gift className="size-5.5" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[13px] font-semibold text-zinc-400">Events created</span>
+                  <span className="text-2xl font-extrabold text-zinc-950 mt-1">6</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              
+              {/* Chart 1: Monthly contributions */}
+              <div className="bg-white border border-purple-50/70 rounded-3xl p-6 shadow-2xs text-left">
+                <h3 className="font-extrabold text-zinc-800 text-[15px] mb-6">Monthly contributions ($)</h3>
+                <div className="h-[280px] w-full">
+                  {mounted ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                        <XAxis dataKey="month" stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
+                        <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} domain={[0, 1000]} ticks={[0, 250, 500, 750, 1000]} />
+                        <Tooltip cursor={{ fill: '#F8FAFC' }} contentStyle={{ borderRadius: 12, border: '1px solid #E2E8F0' }} />
+                        <Bar dataKey="contributions" fill="#7C3AED" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="size-full bg-zinc-50 rounded-xl animate-pulse" />
+                  )}
+                </div>
+              </div>
+
+              {/* Chart 2: Monthly contributors */}
+              <div className="bg-white border border-purple-50/70 rounded-3xl p-6 shadow-2xs text-left">
+                <h3 className="font-extrabold text-zinc-800 text-[15px] mb-6">Monthly contributors</h3>
+                <div className="h-[280px] w-full">
+                  {mounted ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                        <XAxis dataKey="month" stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
+                        <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} domain={[0, 24]} ticks={[0, 6, 12, 18, 24]} />
+                        <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #E2E8F0' }} />
+                        <Line type="monotone" dataKey="contributors" stroke="#FF2056" strokeWidth={2.5} activeDot={{ r: 6 }} dot={{ stroke: '#FF2056', strokeWidth: 3, r: 4, fill: '#FFFFFF' }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="size-full bg-zinc-50 rounded-xl animate-pulse" />
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        ) : activeTab === "network" ? (
           <div className="flex-1 overflow-y-auto p-6 lg:p-12 flex flex-col gap-8 w-full">
             
             {/* Network Header Row */}
@@ -981,7 +1105,7 @@ export default function Dashboard() {
                           <span>{p.pastCelebration.date}</span>
                         </div>
                       ) : (
-                        <div className="h-[21px]" /> // blank placeholder height keep cards aligned
+                        <div className="h-[21px]" />
                       )}
 
                     </div>
@@ -1619,7 +1743,7 @@ export default function Dashboard() {
                     required 
                     value={formDate}
                     onChange={(e) => setFormDate(e.target.value)}
-                    className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[44px] px-3 text-sm text-zinc-800 outline-none w-full transition-all"
+                    className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] text-sm text-zinc-850 outline-none w-full transition-all rounded-lg h-[44px] px-3"
                   />
                 </div>
                 <div className="flex flex-col">
@@ -1853,7 +1977,7 @@ export default function Dashboard() {
                     value={personRole}
                     onChange={(e) => setPersonRole(e.target.value)}
                     placeholder="e.g. Sister, Best Friend" 
-                    className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[44px] px-3.5 text-sm text-zinc-800 outline-none w-full transition-all"
+                    className="bg-[#FAF8FF] border border-purple-100 rounded-lg h-[44px] px-3.5 text-sm text-zinc-800 outline-none w-full transition-all"
                   />
                 </div>
               </div>
@@ -1866,7 +1990,7 @@ export default function Dashboard() {
                     required={activeModal === "add-person"}
                     value={personBirthday}
                     onChange={(e) => setPersonBirthday(e.target.value)}
-                    className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[44px] px-3 text-sm text-zinc-800 outline-none w-full transition-all"
+                    className="bg-[#FAF8FF] border border-purple-100 rounded-lg h-[44px] px-3 text-sm text-zinc-850 outline-none w-full transition-all"
                   />
                 </div>
                 <div className="flex flex-col">

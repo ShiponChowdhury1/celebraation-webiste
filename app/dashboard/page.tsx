@@ -477,7 +477,7 @@ export default function Dashboard() {
 
         {/* VIEW CONDITIONAL RENDER: EVENTS VIEW */}
         {activeTab === "events" ? (
-          <div className="flex-1 overflow-y-auto p-6 lg:p-12 flex flex-col gap-8 max-w-[1440px] mx-auto w-full">
+          <div className="flex-1 overflow-y-auto p-6 lg:p-12 flex flex-col gap-8 w-full">
             
             {/* Events Header row */}
             <div className="flex justify-between items-start text-left">
@@ -682,7 +682,7 @@ export default function Dashboard() {
           </div>
         ) : (
           /* DASHBOARD HOME VIEW */
-          <div className="flex-1 overflow-y-auto p-6 lg:p-12 flex flex-col gap-8 max-w-[1440px] mx-auto w-full">
+          <div className="flex-1 overflow-y-auto p-6 lg:p-12 flex flex-col gap-8 w-full">
             
             {/* Greeting Row */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 text-left border-b border-purple-100/50 pb-6">

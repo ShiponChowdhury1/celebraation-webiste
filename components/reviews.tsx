@@ -106,8 +106,8 @@ export function Reviews() {
                   <div>
                     {/* Top Quote Icon and Star Rating */}
                     <div className="flex items-center justify-between mb-6">
-                      <div className="p-3 bg-purple-50 rounded-2xl group-hover:bg-[#F9F3FF] transition-colors">
-                        <Quote className="size-6 text-[#7C3AED] fill-[#7C3AED]/10" />
+                      <div className="p-3 bg-zinc-50 rounded-2xl group-hover:bg-purple-50 transition-colors">
+                        <Quote className={`size-6 ${review.textColor} fill-current opacity-80`} />
                       </div>
                       <div className="flex gap-1 text-amber-400">
                         {Array.from({ length: 5 }).map((_, starIdx) => (

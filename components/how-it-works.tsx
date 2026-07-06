@@ -10,6 +10,10 @@ interface Step {
   title: string;
   description: string;
   icon: React.ReactNode;
+  colorClass: string;
+  bgColorClass: string;
+  badgeBgClass: string;
+  hoverTextClass: string;
 }
 
 export function HowItWorks() {
@@ -18,31 +22,51 @@ export function HowItWorks() {
       number: "01",
       title: "Add important people",
       description: "Build your network of family and friends. Add their birthdays, anniversaries, and milestones.",
-      icon: <UserPlus className="size-6 text-[#7C3AED]" />,
+      icon: <UserPlus className="size-6 text-[#009966]" />,
+      colorClass: "text-[#009966]",
+      bgColorClass: "bg-emerald-50 group-hover:bg-emerald-100/70",
+      badgeBgClass: "bg-emerald-100 text-[#009966]",
+      hoverTextClass: "group-hover:text-[#009966]"
     },
     {
       number: "02",
       title: "Create a celebration page",
       description: "Design a beautiful page for the occasion. Choose a theme, set a WishPool goal, and write a personal message.",
       icon: <Palette className="size-6 text-[#7C3AED]" />,
+      colorClass: "text-[#7C3AED]",
+      bgColorClass: "bg-purple-50 group-hover:bg-purple-100/70",
+      badgeBgClass: "bg-purple-100 text-[#7C3AED]",
+      hoverTextClass: "group-hover:text-[#7C3AED]"
     },
     {
       number: "03",
       title: "Share the link",
       description: "Send a single link to everyone. They'll land on a beautiful page that explains exactly how to contribute.",
-      icon: <LinkIcon className="size-6 text-[#7C3AED]" />,
+      icon: <LinkIcon className="size-6 text-[#E17100]" />,
+      colorClass: "text-[#E17100]",
+      bgColorClass: "bg-orange-50 group-hover:bg-orange-100/70",
+      badgeBgClass: "bg-orange-100 text-[#E17100]",
+      hoverTextClass: "group-hover:text-[#E17100]"
     },
     {
       number: "04",
       title: "Collect contributions & messages",
       description: "Watch the fund grow in real time. Every contributor leaves a heartfelt message attached to their gift.",
-      icon: <HeartHandshake className="size-6 text-[#7C3AED]" />,
+      icon: <HeartHandshake className="size-6 text-[#FF2056]" />,
+      colorClass: "text-[#FF2056]",
+      bgColorClass: "bg-rose-50 group-hover:bg-rose-100/70",
+      badgeBgClass: "bg-rose-100 text-[#FF2056]",
+      hoverTextClass: "group-hover:text-[#FF2056]"
     },
     {
       number: "05",
       title: "Reveal the celebration",
       description: "Present the recipient with a magical reveal: confetti, all their messages, and the grand total.",
       icon: <PartyPopper className="size-6 text-[#7C3AED]" />,
+      colorClass: "text-[#7C3AED]",
+      bgColorClass: "bg-purple-50 group-hover:bg-purple-100/70",
+      badgeBgClass: "bg-purple-100 text-[#7C3AED]",
+      hoverTextClass: "group-hover:text-[#7C3AED]"
     },
   ];
 
@@ -83,20 +107,20 @@ export function HowItWorks() {
                 {/* Step Circle with Icon */}
                 <div className="relative mb-6">
                   {/* Number Overlay */}
-                  <span className="absolute -top-3 -right-3 text-xs font-extrabold text-[#7C3AED] bg-purple-100 px-2 py-0.5 rounded-full z-20">
+                  <span className={`absolute -top-3 -right-3 text-[10px] font-extrabold px-2 py-0.5 rounded-full z-20 shadow-xs border border-white ${step.badgeBgClass}`}>
                     {step.number}
                   </span>
 
                   {/* Circle container */}
                   <div className="size-20 md:size-24 rounded-3xl bg-white border border-purple-100/80 shadow-md shadow-purple-100/20 flex items-center justify-center group-hover:scale-110 group-hover:border-purple-200 group-hover:shadow-lg group-hover:shadow-purple-100/40 transition-all duration-300 relative z-10">
-                    <div className="p-4 rounded-2xl bg-purple-50 group-hover:bg-[#F9F3FF] transition-colors">
+                    <div className={`p-4 rounded-2xl ${step.bgColorClass} transition-colors`}>
                       {step.icon}
                     </div>
                   </div>
                 </div>
 
                 {/* Step Text Info */}
-                <h3 className="text-lg font-bold text-zinc-900 mb-3 group-hover:text-[#7C3AED] transition-colors">
+                <h3 className={`text-lg font-bold text-zinc-900 mb-3 transition-colors ${step.hoverTextClass}`}>
                   {step.title}
                 </h3>
                 <p className="text-zinc-500 text-sm leading-relaxed max-w-[220px] mx-auto">

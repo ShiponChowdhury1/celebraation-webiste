@@ -61,11 +61,21 @@ export function FAQ() {
         <div className="flex flex-col gap-4 text-left w-full">
           {faqs.map((faq, i) => {
             const isOpen = activeIndex === i;
+
+            // Alternating brand colors
+            const schemes = [
+              { border: "border-l-[#7C3AED]", text: "text-[#7C3AED]", bg: "bg-purple-50", activeBg: "bg-purple-100", borderLight: "border-l-[#7C3AED]/25" },
+              { border: "border-l-[#FF2056]", text: "text-[#FF2056]", bg: "bg-rose-50", activeBg: "bg-rose-100", borderLight: "border-l-[#FF2056]/25" },
+              { border: "border-l-[#009966]", text: "text-[#009966]", bg: "bg-emerald-50", activeBg: "bg-emerald-100", borderLight: "border-l-[#009966]/25" },
+              { border: "border-l-[#E17100]", text: "text-[#E17100]", bg: "bg-orange-50", activeBg: "bg-orange-100", borderLight: "border-l-[#E17100]/25" },
+            ];
+            const scheme = schemes[i % schemes.length];
+
             return (
               <div
                 key={i}
                 className={`bg-white border border-purple-100 border-l-4 ${
-                  isOpen ? "border-l-[#BB4D00]" : "border-l-[#BB4D00]/20"
+                  isOpen ? scheme.border : scheme.borderLight
                 } rounded-2xl overflow-hidden shadow-xs hover:border-purple-200/80 transition-all duration-300`}
               >
                 {/* Header */}
@@ -76,7 +86,9 @@ export function FAQ() {
                   <span className="font-bold text-base md:text-lg">
                     {faq.question}
                   </span>
-                  <div className={`p-1.5 rounded-full bg-purple-50 shrink-0 text-[#7C3AED] transition-transform duration-300 ${isOpen ? "rotate-180 bg-purple-100" : ""}`}>
+                  <div className={`p-1.5 rounded-full shrink-0 transition-all duration-300 ${
+                    isOpen ? `rotate-180 ${scheme.activeBg} ${scheme.text}` : `bg-purple-50 text-zinc-400`
+                  }`}>
                     <ChevronDown className="size-5" />
                   </div>
                 </button>

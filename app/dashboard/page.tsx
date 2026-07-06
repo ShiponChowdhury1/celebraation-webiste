@@ -64,7 +64,7 @@ const ProgressCircle = ({ percentage }: { percentage: number }) => {
 
 export default function Dashboard() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, events, network, analytics...
+  const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, events, network, analytics, notifications...
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all"); // all, live, draft, closed, revealed, archived
 
@@ -74,6 +74,9 @@ export default function Dashboard() {
   const [networkSort, setNetworkSort] = useState("milestone"); // milestone, name, recent
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Notification filters
+  const [notifFilter, setNotifFilter] = useState("all"); // all, reminder, contribution, goal, reveal, system
 
   // SSR safety check mounted state
   const [mounted, setMounted] = useState(false);
@@ -266,6 +269,87 @@ export default function Dashboard() {
       milestoneDate: "Apr 22",
       daysLeft: 298,
       pastCelebration: null
+    }
+  ]);
+
+  // Notifications Interactive array
+  const [notifications, setNotifications] = useState([
+    {
+      id: "notif-emma-bday",
+      title: "Emma's birthday in 23 days",
+      message: "Emma's 30th Birthday is coming up. Your WishPool is at 84% — share the link to hit your goal!",
+      time: "Just now",
+      read: false,
+      type: "reminder", // reminder, contribution, goal, reveal, system
+      icon: "⏳",
+      iconBg: "bg-amber-50 text-amber-500 border border-amber-100",
+      bgClass: "bg-[#FFFDF5] border border-amber-100/70"
+    },
+    {
+      id: "notif-contrib-marcus",
+      title: "New contribution received",
+      message: "Marcus Chen contributed $75 to Emma's 30th Birthday.",
+      time: "2 hours ago",
+      read: false,
+      type: "contribution",
+      icon: "🎁",
+      iconBg: "bg-purple-50 text-[#7C3AED] border border-purple-100",
+      bgClass: "bg-[#FAF8FF] border border-purple-100/50"
+    },
+    {
+      id: "notif-contrib-sophie",
+      title: "New contribution received",
+      message: "Sophie Laurent contributed $50 to Emma's 30th Birthday.",
+      time: "3 hours ago",
+      read: false,
+      type: "contribution",
+      icon: "🎁",
+      iconBg: "bg-purple-50 text-[#7C3AED] border border-purple-100",
+      bgClass: "bg-[#FAF8FF] border border-purple-100/50"
+    },
+    {
+      id: "notif-goal-reached",
+      title: "Goal reached! 🎉",
+      message: "Alex's Graduation WishPool hit $500 — the goal is complete! Ready to reveal.",
+      time: "1 day ago",
+      read: true,
+      type: "goal",
+      icon: "🎯",
+      iconBg: "bg-emerald-50 text-emerald-500 border border-emerald-100",
+      bgClass: "bg-white border border-zinc-100"
+    },
+    {
+      id: "notif-reveal-complete",
+      title: "Reveal completed",
+      message: "Robert Rivera opened his retirement reveal page and reacted 😄",
+      time: "2 days ago",
+      read: true,
+      type: "reveal",
+      icon: "✨",
+      iconBg: "bg-fuchsia-50 text-fuchsia-500 border border-fuchsia-100",
+      bgClass: "bg-white border border-zinc-100"
+    },
+    {
+      id: "notif-sophie-wedding",
+      title: "Sophie's wedding in 42 days",
+      message: "You're at 49% of your wedding WishPool goal. Invite more contributors!",
+      time: "3 days ago",
+      read: true,
+      type: "reminder",
+      icon: "⏳",
+      iconBg: "bg-amber-50 text-amber-500 border border-amber-100",
+      bgClass: "bg-white border border-zinc-100"
+    },
+    {
+      id: "notif-welcome",
+      title: "Welcome to WishPool! 🎉",
+      message: "Your trial is active. Enjoy unlimited celebrations and the confetti reveal.",
+      time: "5 days ago",
+      read: true,
+      type: "system",
+      icon: "❄️",
+      iconBg: "bg-blue-50 text-blue-500 border border-blue-100",
+      bgClass: "bg-white border border-zinc-100"
     }
   ]);
 
@@ -466,6 +550,22 @@ export default function Dashboard() {
     setActiveModal(null);
   };
 
+  // Mark all as read
+  const handleMarkAllRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    triggerToast("All notifications marked as read.");
+  };
+
+  // Toggle notification read status
+  const handleToggleRead = (id: string) => {
+    setNotifications(prev => prev.map(n => {
+      if (n.id === id) {
+        return { ...n, read: !n.read };
+      }
+      return n;
+    }));
+  };
+
   // Filter calculation variables for Events
   const countAll = events.length;
   const countLive = events.filter(e => e.status === "live").length;
@@ -510,12 +610,31 @@ export default function Dashboard() {
     return a.daysLeft - b.daysLeft;
   });
 
+  // Notifications calculation variables
+  const unreadNotifCount = notifications.filter(n => !n.read).length;
+  
+  const countNotifAll = notifications.length;
+  const countNotifReminder = notifications.filter(n => n.type === "reminder").length;
+  const countNotifContribution = notifications.filter(n => n.type === "contribution").length;
+  const countNotifGoal = notifications.filter(n => n.type === "goal").length;
+  const countNotifReveal = notifications.filter(n => n.type === "reveal").length;
+  const countNotifSystem = notifications.filter(n => n.type === "system").length;
+
+  // Filter notifications list
+  const filteredNotifs = notifications.filter(n => {
+    if (notifFilter === "all") return true;
+    return n.type === notifFilter;
+  });
+
+  const unreadNotifs = filteredNotifs.filter(n => !n.read);
+  const earlierNotifs = filteredNotifs.filter(n => n.read);
+
   const sidebarLinks = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "events", label: "Events", icon: Calendar, badge: countAll },
     { id: "network", label: "Network", icon: Users, badge: netCountAll },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
-    { id: "notifications", label: "Notifications", icon: Bell, badge: 3 },
+    { id: "notifications", label: "Notifications", icon: Bell, badge: unreadNotifCount },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -683,16 +802,147 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="p-2 text-zinc-400 hover:text-[#7C3AED] relative rounded-full hover:bg-purple-50 transition-colors">
+            <button 
+              onClick={() => setActiveTab("notifications")}
+              className="p-2 text-zinc-400 hover:text-[#7C3AED] relative rounded-full hover:bg-purple-50 transition-colors"
+            >
               <Bell className="size-5.5" />
-              <span className="absolute top-1 right-1.5 size-2 bg-[#FF2056] rounded-full" />
+              {unreadNotifCount > 0 && (
+                <span className="absolute top-1 right-1.5 size-2 bg-[#FF2056] rounded-full" />
+              )}
             </button>
             <img src={userProfile.avatar} alt="Profile" className="size-10 rounded-full object-cover border border-purple-100" />
           </div>
         </header>
 
-        {/* VIEW CONDITIONAL RENDER: ANALYTICS VIEW */}
-        {activeTab === "analytics" ? (
+        {/* VIEW CONDITIONAL RENDER: NOTIFICATIONS VIEW */}
+        {activeTab === "notifications" ? (
+          <div className="flex-grow overflow-y-auto p-6 lg:p-12 flex flex-col gap-8 w-full">
+            
+            {/* Header row */}
+            <div className="flex items-center justify-between text-left">
+              <div className="flex flex-col gap-1">
+                <h1 className="text-3xl font-extrabold text-zinc-950 tracking-tight leading-tight select-none">Notifications</h1>
+                <span className="text-xs text-zinc-500 font-light select-none">Manage your account, notifications, and preferences</span>
+              </div>
+              <Button 
+                onClick={handleMarkAllRead}
+                variant="outline"
+                className="border-purple-200 text-zinc-700 bg-white hover:bg-purple-50 rounded-full px-5 h-[40px] text-xs font-bold transition-all shadow-2xs flex items-center gap-2"
+              >
+                <Check className="size-4" /> Mark all read
+              </Button>
+            </div>
+
+            {/* Filter categories list */}
+            <div className="flex flex-wrap gap-2.5 select-none border-b border-purple-100/30 pb-4">
+              {[
+                { filterId: "all", label: "All", count: unreadNotifCount },
+                { filterId: "reminder", label: "Reminders", count: countNotifReminder },
+                { filterId: "contribution", label: "Contributions", count: countNotifContribution },
+                { filterId: "goal", label: "Goals", count: countNotifGoal },
+                { filterId: "reveal", label: "Reveals", count: countNotifReveal },
+                { filterId: "system", label: "System", count: countNotifSystem },
+              ].map((pill) => (
+                <button
+                  key={pill.filterId}
+                  onClick={() => setNotifFilter(pill.filterId)}
+                  className={`flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-bold transition-all ${
+                    notifFilter === pill.filterId
+                      ? "bg-[#7C3AED] text-white shadow-sm"
+                      : "bg-white text-zinc-500 border border-purple-50 hover:bg-purple-50/50"
+                  }`}
+                >
+                  <span>{pill.label}</span>
+                  {pill.filterId === "all" ? (
+                    unreadNotifCount > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-extrabold bg-white/20 text-white">
+                        {unreadNotifCount}
+                      </span>
+                    )
+                  ) : (
+                    pill.count > 0 && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-extrabold ${
+                        notifFilter === pill.filterId ? "bg-white/20 text-white" : "bg-purple-50 text-zinc-500"
+                      }`}>
+                        {pill.count}
+                      </span>
+                    )
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Notification Lists segments */}
+            <div className="flex flex-col gap-6 text-left">
+              
+              {/* UNREAD SECTION */}
+              {unreadNotifs.length > 0 && (
+                <div className="flex flex-col gap-3">
+                  <h4 className="text-xs font-extrabold text-zinc-400 tracking-wider select-none uppercase">Unread</h4>
+                  <div className="flex flex-col gap-3">
+                    {unreadNotifs.map((n) => (
+                      <div 
+                        key={n.id}
+                        onClick={() => handleToggleRead(n.id)}
+                        className={`p-5 rounded-2xl cursor-pointer hover:opacity-95 transition-all flex items-start justify-between gap-4 ${n.bgClass}`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className={`size-10 rounded-full flex items-center justify-center text-lg shrink-0 ${n.iconBg}`}>
+                            {n.icon}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-extrabold text-zinc-900 text-[14px] leading-tight">{n.title}</span>
+                            <p className="text-[13px] text-zinc-600 font-light mt-1.5 leading-relaxed">{n.message}</p>
+                            <span className="text-[10px] text-zinc-400 font-light mt-2">{n.time}</span>
+                          </div>
+                        </div>
+                        <span className="size-2 rounded-full bg-[#7C3AED] shrink-0 mt-2.5 animate-pulse" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* EARLIER SECTION */}
+              <div className="flex flex-col gap-3 mt-2">
+                <h4 className="text-xs font-extrabold text-zinc-400 tracking-wider select-none uppercase">Earlier</h4>
+                {earlierNotifs.length === 0 && unreadNotifs.length === 0 ? (
+                  <div className="w-full py-20 bg-white border border-dashed border-purple-100 rounded-3xl flex flex-col items-center justify-center gap-3 text-center">
+                    <Bell className="size-12 text-zinc-200" />
+                    <span className="font-bold text-zinc-800 text-sm mt-2">All caught up!</span>
+                    <p className="text-xs text-zinc-400 font-light max-w-xs leading-relaxed">
+                      You have no notifications in this category.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {earlierNotifs.map((n) => (
+                      <div 
+                        key={n.id}
+                        onClick={() => handleToggleRead(n.id)}
+                        className="p-5 rounded-2xl bg-white border border-zinc-100 hover:border-purple-100/50 hover:bg-purple-50/10 transition-all flex items-start justify-between gap-4 cursor-pointer"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className={`size-10 rounded-full flex items-center justify-center text-lg shrink-0 ${n.iconBg}`}>
+                            {n.icon}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-zinc-800 text-[14px] leading-tight opacity-80">{n.title}</span>
+                            <p className="text-[13px] text-zinc-500 font-light mt-1.5 leading-relaxed">{n.message}</p>
+                            <span className="text-[10px] text-zinc-400 font-light mt-2">{n.time}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+          </div>
+        ) : activeTab === "analytics" ? (
           <div className="flex-1 overflow-y-auto p-6 lg:p-12 flex flex-col gap-8 w-full">
             
             {/* Analytics Header */}
@@ -892,7 +1142,7 @@ export default function Dashboard() {
                   type="text" 
                   placeholder="Search by name, relationship, or tag..." 
                   value={networkSearchQuery}
-                  onChange={(e) => setNetworkSearchQuery(e.target.value)}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-white border border-purple-100/60 focus:border-[#7C3AED] rounded-full h-[50px] pl-11 pr-6 text-xs text-zinc-900 placeholder:text-zinc-400 outline-none transition-all shadow-2xs"
                 />
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
@@ -1330,7 +1580,7 @@ export default function Dashboard() {
                   Good morning, <span className="italic font-serif text-[#7C3AED]">Jamie</span>
                 </h1>
                 <p className="text-sm text-zinc-500 font-light">
-                  You have <span className="font-bold text-[#7C3AED]">2</span> active WishPools and <span className="font-bold text-[#FF2056]">3</span> unread notifications.
+                  You have <span className="font-bold text-[#7C3AED]">2</span> active WishPools and <span className="font-bold text-[#FF2056]">{unreadNotifCount}</span> unread notifications.
                 </p>
               </div>
               

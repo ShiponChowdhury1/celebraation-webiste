@@ -6,7 +6,8 @@ import {
   LayoutDashboard, Calendar, Users, BarChart3, Bell, Settings, 
   LogOut, Plus, Search, Menu, X, DollarSign, Gift, Megaphone, 
   UserPlus, ChevronRight, ShieldCheck, Clock, Check, MoreHorizontal,
-  Eye, Link2, Edit2, Archive, Trash2, CalendarDays
+  Eye, Link2, Edit2, Archive, Trash2, CalendarDays, Award, User,
+  CalendarRange, ArrowUpDown, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -60,6 +61,13 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, events, network...
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all"); // all, live, draft, closed, revealed, archived
+
+  // Network views filters
+  const [networkSearchQuery, setNetworkSearchQuery] = useState("");
+  const [networkFilter, setNetworkFilter] = useState("all"); // all, family, friend, colleague, partner, custom
+  const [networkSort, setNetworkSort] = useState("milestone"); // milestone, name, recent
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
   
   // Interactive events array
   const [events, setEvents] = useState([
@@ -149,6 +157,106 @@ export default function Dashboard() {
     },
   ]);
 
+  // Interactive network array
+  const [networkPeople, setNetworkPeople] = useState([
+    {
+      id: "person-emma",
+      name: "Emma Johnson",
+      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80",
+      relation: "Sister",
+      group: "family",
+      tags: ["close", "birthday-planner"],
+      milestoneType: "Birthday",
+      milestoneDate: "Jul 15",
+      daysLeft: 17,
+      pastCelebration: { icon: "🎂", date: "Mar 1" }
+    },
+    {
+      id: "person-sophie",
+      name: "Sophie Laurent",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+      relation: "Friend",
+      group: "friend",
+      tags: ["wedding", "paris"],
+      milestoneType: "Wedding Day",
+      milestoneDate: "Aug 3",
+      daysLeft: 36,
+      pastCelebration: { icon: "💍", date: "Aug 3" }
+    },
+    {
+      id: "person-priya",
+      name: "Priya Nair",
+      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80",
+      relation: "Team Lead",
+      group: "colleague",
+      tags: ["work", "design-team"],
+      milestoneType: "Birthday",
+      milestoneDate: "Sep 5",
+      daysLeft: 69,
+      pastCelebration: { icon: "🎂", date: "Sep 5" }
+    },
+    {
+      id: "person-alex",
+      name: "Alex Rivera",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
+      relation: "Nephew",
+      group: "family",
+      tags: ["family", "young"],
+      milestoneType: "Birthday",
+      milestoneDate: "Sep 14",
+      daysLeft: 78,
+      pastCelebration: { icon: "🎓", date: "Jun 28" }
+    },
+    {
+      id: "person-robert",
+      name: "Robert Rivera",
+      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80",
+      relation: "Father",
+      group: "family",
+      tags: ["family", "retired"],
+      milestoneType: "Birthday",
+      milestoneDate: "Nov 22",
+      daysLeft: 147,
+      pastCelebration: { icon: "🌅", date: "May 10" }
+    },
+    {
+      id: "person-luca",
+      name: "Luca Ferretti",
+      avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80",
+      relation: "Friend",
+      group: "friend",
+      tags: ["europe", "art"],
+      milestoneType: "Birthday",
+      milestoneDate: "Dec 8",
+      daysLeft: 163,
+      pastCelebration: { icon: "🎂", date: "Feb 14" }
+    },
+    {
+      id: "person-marcus",
+      name: "Marcus Chen",
+      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&auto=format&fit=crop&q=80",
+      relation: "Best Friend",
+      group: "friend",
+      tags: ["close", "tech"],
+      milestoneType: "Birthday",
+      milestoneDate: "Mar 12",
+      daysLeft: 257,
+      pastCelebration: null
+    },
+    {
+      id: "person-amara",
+      name: "Amara Osei",
+      avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&auto=format&fit=crop&q=80",
+      relation: "Close Friend",
+      group: "friend",
+      tags: ["london", "close"],
+      milestoneType: "Birthday",
+      milestoneDate: "Apr 22",
+      daysLeft: 298,
+      pastCelebration: null
+    }
+  ]);
+
   // Toast indicator state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -158,7 +266,7 @@ export default function Dashboard() {
 
   // Modal target event state
   const [modalEvent, setModalEvent] = useState<any>(null);
-  const [activeModal, setActiveModal] = useState<string | null>(null); // create, add-person, edit, preview, delete, archive
+  const [activeModal, setActiveModal] = useState<string | null>(null); // create, add-person, edit, preview, delete, archive, view-person, edit-person, remove-person
 
   // Creation / Edit Form Inputs
   const [formTitle, setFormTitle] = useState("");
@@ -168,16 +276,21 @@ export default function Dashboard() {
   const [formDate, setFormDate] = useState("");
   const [formTarget, setFormTarget] = useState("");
 
-  // Add Person form
+  // Add / Edit Person form
   const [personName, setPersonName] = useState("");
   const [personRole, setPersonRole] = useState("Friend");
+  const [personGroup, setPersonGroup] = useState("friend");
   const [personBirthday, setPersonBirthday] = useState("");
+  const [personTags, setPersonTags] = useState("");
 
   // Dismiss dropdowns on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setActiveDropdownId(null);
+      }
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setIsSortDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -249,12 +362,67 @@ export default function Dashboard() {
     setFormTarget("");
   };
 
-  // Submit new network person
+  // Submit network person additions/edits
   const handleAddPerson = (e: React.FormEvent) => {
     e.preventDefault();
-    triggerToast(`${personName} added to network successfully!`);
+    if (activeModal === "edit-person") {
+      setNetworkPeople(prev => prev.map(p => {
+        if (p.id === modalEvent.id) {
+          const formattedTags = personTags.split(",").map(t => t.trim()).filter(Boolean);
+          const parts = personBirthday.split("-"); // yyyy-mm-dd
+          let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          let dateStr = p.milestoneDate;
+          if (parts.length === 3) {
+            const mIdx = parseInt(parts[1]) - 1;
+            dateStr = `${monthNames[mIdx]} ${parseInt(parts[2])}`;
+          }
+          return {
+            ...p,
+            name: personName,
+            relation: personRole,
+            group: personGroup,
+            tags: formattedTags.length > 0 ? formattedTags : p.tags,
+            milestoneDate: dateStr
+          };
+        }
+        return p;
+      }));
+      triggerToast("Contact updated successfully!");
+    } else {
+      const newId = `person-${Date.now()}`;
+      const formattedTags = personTags.split(",").map(t => t.trim()).filter(Boolean);
+      const parts = personBirthday.split("-");
+      let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      let dateStr = "Dec 25";
+      if (parts.length === 3) {
+        const mIdx = parseInt(parts[1]) - 1;
+        dateStr = `${monthNames[mIdx]} ${parseInt(parts[2])}`;
+      }
+      const newPerson = {
+        id: newId,
+        name: personName || "New Contact",
+        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80",
+        relation: personRole || "Friend",
+        group: personGroup || "friend",
+        tags: formattedTags.length > 0 ? formattedTags : ["close"],
+        milestoneType: "Birthday",
+        milestoneDate: dateStr,
+        daysLeft: 120,
+        pastCelebration: null
+      };
+      setNetworkPeople(prev => [newPerson, ...prev]);
+      triggerToast(`${personName} added to network!`);
+    }
     setActiveModal(null);
     setPersonName("");
+    setPersonTags("");
+  };
+
+  // Remove person
+  const handleRemovePersonConfirm = () => {
+    setNetworkPeople(prev => prev.filter(p => p.id !== modalEvent.id));
+    triggerToast("Contact removed from network.");
+    setActiveModal(null);
   };
 
   // Confirm delete
@@ -276,7 +444,7 @@ export default function Dashboard() {
     setActiveModal(null);
   };
 
-  // Filter calculation variables
+  // Filter calculation variables for Events
   const countAll = events.length;
   const countLive = events.filter(e => e.status === "live").length;
   const countDraft = events.filter(e => e.status === "draft").length;
@@ -294,10 +462,38 @@ export default function Dashboard() {
     return matchesSearch && ev.status === selectedFilter;
   });
 
+  // Network calculation variables
+  const netCountAll = networkPeople.length;
+  const netCountFamily = networkPeople.filter(p => p.group === "family").length;
+  const netCountFriend = networkPeople.filter(p => p.group === "friend").length;
+  const netCountColleague = networkPeople.filter(p => p.group === "colleague").length;
+  const netCountPartner = networkPeople.filter(p => p.group === "partner").length;
+  const netCountCustom = networkPeople.filter(p => p.group === "custom").length;
+
+  // Filter and Sort network list
+  const filteredNetwork = networkPeople.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(networkSearchQuery.toLowerCase()) ||
+                          p.relation.toLowerCase().includes(networkSearchQuery.toLowerCase()) ||
+                          p.tags.some(tag => tag.toLowerCase().includes(networkSearchQuery.toLowerCase()));
+    
+    if (networkFilter === "all") return matchesSearch;
+    return matchesSearch && p.group === networkFilter;
+  }).sort((a, b) => {
+    if (networkSort === "name") {
+      return a.name.localeCompare(b.name);
+    }
+    if (networkSort === "recent") {
+      // simulate recently added sorting using numerical part of id
+      return b.id.localeCompare(a.id);
+    }
+    // Default milestone sort: daysLeft ascending
+    return a.daysLeft - b.daysLeft;
+  });
+
   const sidebarLinks = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "events", label: "Events", icon: Calendar, badge: countAll },
-    { id: "network", label: "Network", icon: Users },
+    { id: "network", label: "Network", icon: Users, badge: netCountAll },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "notifications", label: "Notifications", icon: Bell, badge: 3 },
     { id: "settings", label: "Settings", icon: Settings },
@@ -458,8 +654,8 @@ export default function Dashboard() {
               <input 
                 type="text" 
                 placeholder="Search celebrations, people..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={activeTab === "network" ? networkSearchQuery : searchQuery}
+                onChange={(e) => activeTab === "network" ? setNetworkSearchQuery(e.target.value) : setSearchQuery(e.target.value)}
                 className="w-full bg-[#FAF8FF] border border-purple-100/50 focus:border-[#7C3AED] rounded-full h-[40px] pl-10 pr-4 text-xs font-light text-zinc-900 placeholder:text-zinc-400 outline-none transition-all"
               />
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
@@ -475,8 +671,327 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* VIEW CONDITIONAL RENDER: EVENTS VIEW */}
-        {activeTab === "events" ? (
+        {/* VIEW CONDITIONAL RENDER: NETWORK VIEW */}
+        {activeTab === "network" ? (
+          <div className="flex-1 overflow-y-auto p-6 lg:p-12 flex flex-col gap-8 w-full">
+            
+            {/* Network Header Row */}
+            <div className="flex justify-between items-start text-left">
+              <div className="flex flex-col">
+                <h1 className="text-3xl font-extrabold text-zinc-950 tracking-tight leading-tight select-none">Celebration Network</h1>
+                <span className="text-xs text-purple-600 font-bold mt-1 select-none">{netCountAll} people · Track milestones and create celebrations</span>
+              </div>
+              <Button 
+                onClick={() => {
+                  setPersonName("");
+                  setPersonRole("Friend");
+                  setPersonGroup("friend");
+                  setPersonBirthday("");
+                  setPersonTags("");
+                  setActiveModal("add-person");
+                }}
+                className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-full px-5 h-[44px] text-xs font-bold transition-all shadow-md shadow-purple-600/20 flex items-center gap-2"
+              >
+                <UserPlus className="size-4.5" /> Add Person
+              </Button>
+            </div>
+
+            {/* Network Metric Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 select-none">
+              
+              {/* Metric Card 1: Total People */}
+              <div className="w-full h-[147.67px] bg-[#009966] text-white rounded-[16px] pt-[22.64px] pr-[21.66px] pb-[22.64px] pl-[21.66px] flex flex-col justify-between shadow-lg shadow-emerald-600/10 transition-transform hover:scale-[1.02] duration-300">
+                <div className="flex items-center justify-between">
+                  <span className="text-[15.75px] font-medium leading-[19.69px] tracking-[0.3px] uppercase opacity-90">Total People</span>
+                  <div className="size-9 rounded-full bg-white/20 flex items-center justify-center">
+                    <Users className="size-4.5" />
+                  </div>
+                </div>
+                <div className="flex flex-col text-left gap-[9.84px]">
+                  <span className="text-2xl lg:text-3xl font-extrabold tracking-tight leading-none">{netCountAll}</span>
+                  <span className="text-[11px] font-medium opacity-80">Contacts saved</span>
+                </div>
+              </div>
+
+              {/* Metric Card 2: Milestones Tracked */}
+              <div className="w-full h-[147.67px] bg-[#FF2056] text-white rounded-[16px] pt-[22.64px] pr-[21.66px] pb-[22.64px] pl-[21.66px] flex flex-col justify-between shadow-lg shadow-rose-600/10 transition-transform hover:scale-[1.02] duration-300">
+                <div className="flex items-center justify-between">
+                  <span className="text-[15.75px] font-medium leading-[19.69px] tracking-[0.3px] uppercase opacity-90">Milestones Tracked</span>
+                  <div className="size-9 rounded-full bg-white/20 flex items-center justify-center">
+                    <CalendarRange className="size-4.5" />
+                  </div>
+                </div>
+                <div className="flex flex-col text-left gap-[9.84px]">
+                  <span className="text-2xl lg:text-3xl font-extrabold tracking-tight leading-none">14</span>
+                  <span className="text-[11px] font-medium opacity-80">Dates active</span>
+                </div>
+              </div>
+
+              {/* Metric Card 3: Coming Up (30d) */}
+              <div className="w-full h-[147.67px] bg-[#7C3AED] text-white rounded-[16px] pt-[22.64px] pr-[21.66px] pb-[22.64px] pl-[21.66px] flex flex-col justify-between shadow-lg shadow-purple-600/10 transition-transform hover:scale-[1.02] duration-300">
+                <div className="flex items-center justify-between">
+                  <span className="text-[15.75px] font-medium leading-[19.69px] tracking-[0.3px] uppercase opacity-90">Coming Up (30d)</span>
+                  <div className="size-9 rounded-full bg-white/20 flex items-center justify-center">
+                    <Clock className="size-4.5" />
+                  </div>
+                </div>
+                <div className="flex flex-col text-left gap-[9.84px]">
+                  <span className="text-2xl lg:text-3xl font-extrabold tracking-tight leading-none">
+                    {networkPeople.filter(p => p.daysLeft <= 30).length}
+                  </span>
+                  <span className="text-[11px] font-medium opacity-80">Next 30 days</span>
+                </div>
+              </div>
+
+              {/* Metric Card 4: Past Celebrations */}
+              <div className="w-full h-[147.67px] bg-[#E17100] text-white rounded-[16px] pt-[22.64px] pr-[21.66px] pb-[22.64px] pl-[21.66px] flex flex-col justify-between shadow-lg shadow-orange-600/10 transition-transform hover:scale-[1.02] duration-300">
+                <div className="flex items-center justify-between">
+                  <span className="text-[15.75px] font-medium leading-[19.69px] tracking-[0.3px] uppercase opacity-90">Past Celebrations</span>
+                  <div className="size-9 rounded-full bg-white/20 flex items-center justify-center">
+                    <Megaphone className="size-4.5" />
+                  </div>
+                </div>
+                <div className="flex flex-col text-left gap-[9.84px]">
+                  <span className="text-2xl lg:text-3xl font-extrabold tracking-tight leading-none">3</span>
+                  <span className="text-[11px] font-medium opacity-80">Completed registry pools</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Network Filters and Search bar row */}
+            <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between w-full">
+              
+              {/* Search Bar */}
+              <div className="relative flex-grow max-w-2xl">
+                <input 
+                  type="text" 
+                  placeholder="Search by name, relationship, or tag..." 
+                  value={networkSearchQuery}
+                  onChange={(e) => setNetworkSearchQuery(e.target.value)}
+                  className="w-full bg-white border border-purple-100/60 focus:border-[#7C3AED] rounded-full h-[50px] pl-11 pr-6 text-xs text-zinc-900 placeholder:text-zinc-400 outline-none transition-all shadow-2xs"
+                />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+              </div>
+
+              {/* Sort Dropdown */}
+              <div className="relative shrink-0" ref={sortDropdownRef}>
+                <button
+                  onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+                  className="bg-white border border-purple-100/60 hover:border-[#7C3AED] rounded-full px-5 h-[50px] text-xs font-bold text-zinc-700 transition-colors flex items-center gap-2 justify-between min-w-[160px] shadow-2xs"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <ArrowUpDown className="size-3.5 text-zinc-400" />
+                    <span>
+                      {networkSort === "milestone" ? "Next milestone" : networkSort === "name" ? "Name A-Z" : "Recently added"}
+                    </span>
+                  </div>
+                  <ChevronDown className="size-4 text-zinc-400" />
+                </button>
+
+                {isSortDropdownOpen && (
+                  <div className="absolute right-0 top-13 bg-white border border-purple-100 rounded-xl shadow-xl w-[170px] py-1.5 z-30 animate-in fade-in slide-in-from-top-3 duration-200">
+                    <button 
+                      onClick={() => { setNetworkSort("milestone"); setIsSortDropdownOpen(false); }}
+                      className={`w-full h-[36px] px-3.5 text-left text-xs font-semibold hover:bg-purple-50 hover:text-[#7C3AED] flex items-center justify-between transition-colors ${
+                        networkSort === "milestone" ? "text-[#7C3AED] bg-purple-50/50" : "text-zinc-700"
+                      }`}
+                    >
+                      <span>Next milestone</span>
+                      {networkSort === "milestone" && <Check className="size-3.5" />}
+                    </button>
+                    <button 
+                      onClick={() => { setNetworkSort("name"); setIsSortDropdownOpen(false); }}
+                      className={`w-full h-[36px] px-3.5 text-left text-xs font-semibold hover:bg-purple-50 hover:text-[#7C3AED] flex items-center justify-between transition-colors ${
+                        networkSort === "name" ? "text-[#7C3AED] bg-purple-50/50" : "text-zinc-700"
+                      }`}
+                    >
+                      <span>Name A-Z</span>
+                      {networkSort === "name" && <Check className="size-3.5" />}
+                    </button>
+                    <button 
+                      onClick={() => { setNetworkSort("recent"); setIsSortDropdownOpen(false); }}
+                      className={`w-full h-[36px] px-3.5 text-left text-xs font-semibold hover:bg-purple-50 hover:text-[#7C3AED] flex items-center justify-between transition-colors ${
+                        networkSort === "recent" ? "text-[#7C3AED] bg-purple-50/50" : "text-zinc-700"
+                      }`}
+                    >
+                      <span>Recently added</span>
+                      {networkSort === "recent" && <Check className="size-3.5" />}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* Filter Category pills row */}
+            <div className="flex flex-wrap gap-2.5 select-none border-b border-purple-100/30 pb-4">
+              {[
+                { filterId: "all", label: "All", count: netCountAll },
+                { filterId: "family", label: "Family", count: netCountFamily },
+                { filterId: "friend", label: "Friend", count: netCountFriend },
+                { filterId: "colleague", label: "Colleague", count: netCountColleague },
+                { filterId: "partner", label: "Partner", count: netCountPartner },
+                { filterId: "custom", label: "Custom", count: netCountCustom },
+              ].map((pill) => (
+                <button
+                  key={pill.filterId}
+                  onClick={() => setNetworkFilter(pill.filterId)}
+                  className={`flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-bold transition-all ${
+                    networkFilter === pill.filterId
+                      ? "bg-[#7C3AED] text-white shadow-sm"
+                      : "bg-white text-zinc-500 border border-purple-50 hover:bg-purple-50/50"
+                  }`}
+                >
+                  <span>{pill.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-extrabold ${
+                    networkFilter === pill.filterId
+                      ? "bg-white/20 text-white"
+                      : "bg-purple-50 text-zinc-500"
+                  }`}>
+                    {pill.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Network Contact Cards Grid */}
+            {filteredNetwork.length === 0 ? (
+              <div className="w-full py-24 bg-white border border-dashed border-purple-100 rounded-3xl flex flex-col items-center justify-center gap-3 text-center">
+                <Users className="size-12 text-zinc-300" />
+                <span className="font-bold text-zinc-800 text-base mt-2">No contacts found</span>
+                <p className="text-xs text-zinc-400 font-light max-w-xs leading-relaxed">
+                  Add some friends or family members to start tracking their milestones!
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+                {filteredNetwork.map((p) => {
+                  
+                  // Days left countdown color indicator
+                  const isSoon = p.daysLeft <= 40;
+                  const countdownBadgeStyles = isSoon 
+                    ? "bg-amber-50 text-amber-600 border border-amber-100" 
+                    : "bg-purple-50 text-[#7C3AED] border border-purple-100";
+
+                  return (
+                    <div
+                      key={p.id}
+                      className="bg-white border border-purple-50/70 rounded-[24px] p-6 text-left shadow-2xs hover:shadow-xs transition-all relative flex flex-col gap-4 select-none"
+                    >
+                      {/* Top profile segment */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3.5">
+                          <img src={p.avatar} alt={p.name} className="size-12 rounded-full object-cover border border-purple-100 shrink-0" />
+                          <div className="flex flex-col">
+                            <h3 className="font-extrabold text-[#0D0A1A] text-[15px] leading-tight">{p.name}</h3>
+                            <span className="text-[11.5px] text-zinc-400 font-light mt-0.5">{p.relation} · {p.group}</span>
+                          </div>
+                        </div>
+
+                        <div className="relative">
+                          <button 
+                            onClick={() => setActiveDropdownId(activeDropdownId === p.id ? null : p.id)}
+                            className="size-8.5 rounded-full bg-zinc-50 hover:bg-purple-50 text-zinc-400 hover:text-[#7C3AED] flex items-center justify-center border border-zinc-100 transition-colors"
+                          >
+                            <MoreHorizontal className="size-4" />
+                          </button>
+
+                          {activeDropdownId === p.id && (
+                            <div 
+                              ref={dropdownRef}
+                              className="absolute right-0 top-10 bg-white border border-purple-100 rounded-xl shadow-xl w-[170px] py-1.5 z-30 animate-in fade-in slide-in-from-top-3 duration-200"
+                            >
+                              <button 
+                                onClick={() => { setModalEvent(p); setActiveModal("view-person"); setActiveDropdownId(null); }}
+                                className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors"
+                              >
+                                <Eye className="size-4" /> View profile
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  setModalEvent(p);
+                                  setPersonName(p.name);
+                                  setPersonRole(p.relation);
+                                  setPersonGroup(p.group);
+                                  setPersonBirthday("");
+                                  setPersonTags(p.tags.join(", "));
+                                  setActiveModal("edit-person");
+                                  setActiveDropdownId(null);
+                                }}
+                                className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors"
+                              >
+                                <Edit2 className="size-4" /> Edit
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  setFormTitle(`${p.name}'s Celebration`);
+                                  setFormRecipient(p.name);
+                                  setFormRelation(p.relation);
+                                  setFormTarget("1000");
+                                  setActiveModal("create");
+                                  setActiveDropdownId(null);
+                                }}
+                                className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors"
+                              >
+                                <Gift className="size-4" /> Create celebration
+                              </button>
+                              <div className="border-t border-zinc-100 my-1" />
+                              <button 
+                                onClick={() => { setModalEvent(p); setActiveModal("remove-person"); setActiveDropdownId(null); }}
+                                className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors"
+                              >
+                                <Trash2 className="size-4" /> Remove
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Tag list row */}
+                      <div className="flex flex-wrap gap-1.5 select-none">
+                        {p.tags.map((tag, tIdx) => (
+                          <span 
+                            key={tIdx}
+                            className="bg-[#F8F6FF] border border-purple-50/50 text-[#7C3AED]/70 text-[10px] font-bold px-2.5 py-0.5 rounded-full capitalize"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Milestone visual block */}
+                      <div className="bg-[#FAF8FF] border border-purple-100/30 rounded-2xl p-3.5 flex items-center justify-between mt-1">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">{p.milestoneType.includes("Wedding") ? "💍" : "🎂"}</span>
+                          <div className="flex flex-col text-left">
+                            <span className="text-xs font-bold text-zinc-800 leading-tight">{p.milestoneType}</span>
+                            <span className="text-[10px] text-zinc-400 font-light mt-0.5">{p.milestoneDate}</span>
+                          </div>
+                        </div>
+                        <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full select-none ${countdownBadgeStyles}`}>
+                          • {p.daysLeft}d
+                        </span>
+                      </div>
+
+                      {/* Bottom row: past activity logs */}
+                      {p.pastCelebration ? (
+                        <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-100 rounded-full px-3 py-1 text-[10px] font-medium text-zinc-400 select-none w-max">
+                          <span>{p.pastCelebration.icon}</span>
+                          <span>{p.pastCelebration.date}</span>
+                        </div>
+                      ) : (
+                        <div className="h-[21px]" /> // blank placeholder height keep cards aligned
+                      )}
+
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+          </div>
+        ) : activeTab === "events" ? (
           <div className="flex-1 overflow-y-auto p-6 lg:p-12 flex flex-col gap-8 w-full">
             
             {/* Events Header row */}
@@ -1164,7 +1679,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <p className="text-xs text-purple-100 font-light max-w-md leading-relaxed mt-1">
-                "Welcome to Emma's WishPool! Let's fill this pool with love, birthday memories, and help them hit their milestones."
+                "Welcome to {modalEvent.recipient}'s WishPool! Let's fill this pool with love, messages, and help them hit their milestones."
               </p>
             </div>
 
@@ -1173,18 +1688,18 @@ export default function Dashboard() {
               <div className="flex justify-between items-start">
                 <div className="flex flex-col gap-1">
                   <span className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Amount Raised</span>
-                  <span className="text-3xl font-extrabold text-zinc-900 leading-none">${modalEvent.raised.toLocaleString()}</span>
-                  <span className="text-[11px] text-zinc-400 font-light mt-1">Goal of ${modalEvent.target.toLocaleString()}</span>
+                  <span className="text-3xl font-extrabold text-zinc-900 leading-none">${modalEvent.raised ? modalEvent.raised.toLocaleString() : "0"}</span>
+                  <span className="text-[11px] text-zinc-400 font-light mt-1">Goal of ${modalEvent.target ? modalEvent.target.toLocaleString() : "1,000"}</span>
                 </div>
                 <div className="bg-purple-50 text-[#7C3AED] px-4 py-2.5 rounded-2xl text-center flex flex-col shrink-0 border border-purple-100">
-                  <span className="text-base font-extrabold">{modalEvent.progress}%</span>
+                  <span className="text-base font-extrabold">{modalEvent.progress || 0}%</span>
                   <span className="text-[9px] uppercase font-bold tracking-wider opacity-75">Reached</span>
                 </div>
               </div>
 
               {/* Progress bar */}
               <div className="w-full h-3 bg-purple-50 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style={{ width: `${Math.min(modalEvent.progress, 100)}%` }} />
+                <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style={{ width: `${Math.min(modalEvent.progress || 0, 100)}%` }} />
               </div>
 
               {/* Action buttons */}
@@ -1193,7 +1708,7 @@ export default function Dashboard() {
                   Add to WishPool
                 </Button>
                 <Button 
-                  onClick={() => handleCopyLink(modalEvent.title)}
+                  onClick={() => handleCopyLink(modalEvent.title || modalEvent.name)}
                   variant="outline" 
                   className="border-purple-200 text-[#7C3AED] bg-white hover:bg-purple-50 font-bold h-[44px] rounded-full text-xs transition-all flex items-center justify-center gap-1.5"
                 >
@@ -1201,28 +1716,6 @@ export default function Dashboard() {
                 </Button>
               </div>
             </div>
-
-            {/* Simulated contributions */}
-            <div className="mt-6 flex flex-col gap-3">
-              <h4 className="text-sm font-bold text-zinc-800">Recent contributors ({modalEvent.contributors})</h4>
-              <div className="bg-white border border-zinc-100 rounded-2xl divide-y divide-zinc-50 overflow-hidden text-sm">
-                <div className="p-3.5 flex justify-between">
-                  <div className="flex flex-col text-left">
-                    <span className="font-bold text-zinc-800 text-xs">Anonymous</span>
-                    <span className="text-[11px] text-zinc-400 italic">"Wishing you the happiest of celebrations!"</span>
-                  </div>
-                  <span className="font-bold text-zinc-800 text-xs font-mono">$100</span>
-                </div>
-                <div className="p-3.5 flex justify-between">
-                  <div className="flex flex-col text-left">
-                    <span className="font-bold text-zinc-800 text-xs">Sarah & Liam</span>
-                    <span className="text-[11px] text-zinc-400 italic">"So excited for you!"</span>
-                  </div>
-                  <span className="font-bold text-zinc-800 text-xs font-mono">$50</span>
-                </div>
-              </div>
-            </div>
-
           </div>
         </div>
       )}
@@ -1305,8 +1798,8 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 8. MODAL: ADD PERSON TO NETWORK */}
-      {activeModal === "add-person" && (
+      {/* 8. MODAL: ADD / EDIT PERSON TO NETWORK */}
+      {(activeModal === "add-person" || activeModal === "edit-person") && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative text-left animate-in zoom-in-95 duration-250 border border-purple-100">
             <button 
@@ -1319,7 +1812,9 @@ export default function Dashboard() {
               <div className="size-10 rounded-2xl bg-[#7C3AED] text-white flex items-center justify-center">
                 <UserPlus className="size-5" />
               </div>
-              <h2 className="text-xl font-extrabold text-zinc-900">Add to Network</h2>
+              <h2 className="text-xl font-extrabold text-zinc-900">
+                {activeModal === "edit-person" ? "Edit Contact" : "Add to Network"}
+              </h2>
             </div>
             
             <form onSubmit={handleAddPerson} className="flex flex-col gap-4">
@@ -1330,43 +1825,199 @@ export default function Dashboard() {
                   required 
                   value={personName}
                   onChange={(e) => setPersonName(e.target.value)}
-                  placeholder="e.g. Liam Miller" 
+                  placeholder="e.g. Emma Johnson" 
                   className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] rounded-lg h-[44px] px-3.5 text-sm text-zinc-900 outline-none w-full transition-all"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold text-zinc-700 mb-1.5">Relationship</label>
+                  <label className="text-xs font-bold text-zinc-700 mb-1.5">Relationship Group</label>
                   <select 
-                    value={personRole}
-                    onChange={(e) => setPersonRole(e.target.value)}
+                    value={personGroup}
+                    onChange={(e) => setPersonGroup(e.target.value)}
                     className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[44px] px-3 text-sm text-zinc-800 outline-none w-full transition-all"
                   >
-                    <option value="Friend">Friend</option>
-                    <option value="Sister">Sister</option>
-                    <option value="Brother">Brother</option>
-                    <option value="Mother">Mother</option>
-                    <option value="Father">Father</option>
-                    <option value="Colleague">Colleague</option>
+                    <option value="family">Family</option>
+                    <option value="friend">Friend</option>
+                    <option value="colleague">Colleague</option>
+                    <option value="partner">Partner</option>
+                    <option value="custom">Custom</option>
                   </select>
                 </div>
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold text-zinc-700 mb-1.5">Specific Relation</label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={personRole}
+                    onChange={(e) => setPersonRole(e.target.value)}
+                    placeholder="e.g. Sister, Best Friend" 
+                    className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[44px] px-3.5 text-sm text-zinc-800 outline-none w-full transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <label className="text-xs font-bold text-zinc-700 mb-1.5">Birthday Date</label>
                   <input 
                     type="date" 
-                    required
+                    required={activeModal === "add-person"}
                     value={personBirthday}
                     onChange={(e) => setPersonBirthday(e.target.value)}
-                    className="bg-[#FAF8FF] border border-purple-100 rounded-lg h-[44px] px-3 text-sm text-zinc-800 outline-none w-full transition-all"
+                    className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] rounded-lg h-[44px] px-3 text-sm text-zinc-800 outline-none w-full transition-all"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold text-zinc-700 mb-1.5">Tags (comma separated)</label>
+                  <input 
+                    type="text" 
+                    value={personTags}
+                    onChange={(e) => setPersonTags(e.target.value)}
+                    placeholder="e.g. close, tech, paris" 
+                    className="bg-[#FAF8FF] border border-purple-100 focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] rounded-lg h-[44px] px-3.5 text-sm text-zinc-900 outline-none w-full transition-all"
                   />
                 </div>
               </div>
 
               <Button type="submit" className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold h-[44px] rounded-lg shadow-sm transition-all mt-2">
-                Add Person
+                {activeModal === "edit-person" ? "Save Changes" : "Add Contact"}
               </Button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 9. MODAL: VIEW NETWORK PROFILE */}
+      {activeModal === "view-person" && modalEvent && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-[#FAF8FF] rounded-3xl max-w-md w-full p-6 shadow-2xl relative text-left animate-in zoom-in-95 duration-250 border border-purple-100">
+            <button 
+              onClick={() => setActiveModal(null)}
+              className="absolute right-4 top-4 p-2 text-zinc-400 hover:text-zinc-800 rounded-full"
+            >
+              <X className="size-5" />
+            </button>
+
+            <div className="flex flex-col items-center text-center gap-3.5 border-b border-zinc-100 pb-5 mb-5 select-none">
+              <img src={modalEvent.avatar} alt={modalEvent.name} className="size-20 rounded-full object-cover border-2 border-[#7C3AED] shadow-md" />
+              <div className="flex flex-col">
+                <h2 className="text-xl font-extrabold text-zinc-900 leading-tight">{modalEvent.name}</h2>
+                <span className="text-xs text-zinc-400 font-medium mt-1 uppercase tracking-widest">{modalEvent.relation} ({modalEvent.group})</span>
+              </div>
+              <div className="flex gap-1.5 flex-wrap justify-center mt-0.5">
+                {modalEvent.tags.map((tag: string, idx: number) => (
+                  <span key={idx} className="bg-purple-100 text-[#7C3AED] text-[9.5px] font-extrabold px-2.5 py-0.5 rounded-full uppercase">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-4 select-none">
+              {/* Milestone Details */}
+              <div className="flex flex-col gap-2">
+                <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Active Milestones</h4>
+                <div className="bg-white border border-purple-100/50 rounded-2xl p-4 flex items-center justify-between shadow-2xs">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{modalEvent.milestoneType.includes("Wedding") ? "💍" : "🎂"}</span>
+                    <div className="flex flex-col">
+                      <span className="font-bold text-sm text-zinc-800 leading-tight">{modalEvent.milestoneType}</span>
+                      <span className="text-[10px] text-zinc-400 mt-0.5">{modalEvent.milestoneDate}</span>
+                    </div>
+                  </div>
+                  <span className="bg-rose-50 text-[#FF2056] border border-rose-100 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
+                    In {modalEvent.daysLeft} days
+                  </span>
+                </div>
+              </div>
+
+              {/* History Event logs */}
+              <div className="flex flex-col gap-2 mt-1">
+                <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Past pool activity</h4>
+                {modalEvent.pastCelebration ? (
+                  <div className="bg-white border border-zinc-100 rounded-2xl p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{modalEvent.pastCelebration.icon}</span>
+                      <span className="font-bold text-sm text-zinc-800">Celebration Pool Registry</span>
+                    </div>
+                    <span className="text-xs font-semibold text-zinc-400 font-mono">{modalEvent.pastCelebration.date}</span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-400 font-light italic">No previous WishPool activity logged.</p>
+                )}
+              </div>
+
+              {/* Action Trigger */}
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <Button 
+                  onClick={() => {
+                    setFormTitle(`${modalEvent.name}'s Celebration`);
+                    setFormRecipient(modalEvent.name);
+                    setFormRelation(modalEvent.relation);
+                    setFormTarget("1000");
+                    setActiveModal("create");
+                  }}
+                  className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold h-[42px] rounded-xl text-xs shadow-sm transition-all"
+                >
+                  Create WishPool
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setPersonName(modalEvent.name);
+                    setPersonRole(modalEvent.relation);
+                    setPersonGroup(modalEvent.group);
+                    setPersonBirthday("");
+                    setPersonTags(modalEvent.tags.join(", "));
+                    setActiveModal("edit-person");
+                  }}
+                  variant="outline"
+                  className="w-full border-purple-100 text-zinc-600 bg-white hover:bg-purple-50 font-bold h-[42px] rounded-xl text-xs transition-all"
+                >
+                  Edit Contact
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 10. MODAL: REMOVE NETWORK CONTACT */}
+      {activeModal === "remove-person" && modalEvent && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl relative text-center animate-in zoom-in-95 duration-250 border border-purple-100">
+            <button 
+              onClick={() => setActiveModal(null)}
+              className="absolute right-4 top-4 p-2 text-zinc-400 hover:text-zinc-800 rounded-full"
+            >
+              <X className="size-5" />
+            </button>
+
+            <div className="size-12 rounded-full bg-rose-50 border border-rose-100 text-[#FF2056] flex items-center justify-center mx-auto mb-4 mt-2">
+              <Trash2 className="size-5 animate-bounce" />
+            </div>
+
+            <h3 className="text-lg font-extrabold text-zinc-950 mb-2">Remove Contact?</h3>
+            <p className="text-xs text-zinc-400 font-light leading-relaxed mb-6">
+              Are you sure you want to remove <span className="font-bold text-zinc-700">"{modalEvent.name}"</span> from your Celebration Network? This cannot be undone.
+            </p>
+
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => setActiveModal(null)}
+                variant="outline" 
+                className="w-full border-purple-100 text-zinc-500 hover:bg-zinc-50 h-[42px] text-xs font-bold rounded-lg"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleRemovePersonConfirm}
+                className="w-full bg-[#FF2056] hover:bg-rose-600 text-white h-[42px] text-xs font-bold rounded-lg shadow-sm"
+              >
+                Remove
+              </Button>
+            </div>
           </div>
         </div>
       )}

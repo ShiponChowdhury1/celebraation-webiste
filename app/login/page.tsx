@@ -58,7 +58,7 @@ export default function AuthPage() {
     e.preventDefault();
     // Navigate simulation
     if (mode === "login") {
-      window.location.href = "/";
+      window.location.href = "/dashboard";
     } else if (mode === "signup") {
       setMode("verify");
     } else if (mode === "forgot") {
@@ -66,7 +66,7 @@ export default function AuthPage() {
     } else if (mode === "verify") {
       setMode("reset");
     } else if (mode === "reset") {
-      setMode("login");
+      window.location.href = "/dashboard";
     }
   };
 

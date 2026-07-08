@@ -23,6 +23,7 @@ interface DashboardOverviewProps {
   setWDescription: (val: string) => void;
   setWTheme: (val: string) => void;
   setWInvitees: (val: string[]) => void;
+  setModalEvent: (ev: any) => void;
 }
 
 export default function DashboardOverview({
@@ -40,7 +41,8 @@ export default function DashboardOverview({
   setWDate,
   setWDescription,
   setWTheme,
-  setWInvitees
+  setWInvitees,
+  setModalEvent
 }: DashboardOverviewProps) {
   
   const activeEvents = events.filter(e => e.status === "live");
@@ -62,7 +64,7 @@ export default function DashboardOverview({
         
         <div className="flex items-center gap-3">
           <Button 
-            onClick={() => setActiveModal("add-person")}
+            onClick={() => setActiveTab("add-person")}
             variant="outline" 
             className="border-purple-200 text-zinc-700 bg-white hover:bg-purple-50 rounded-full px-5 h-[44px] text-xs font-bold transition-all shadow-2xs flex items-center gap-2 cursor-pointer"
           >
@@ -101,7 +103,15 @@ export default function DashboardOverview({
           </div>
         </div>
         <button 
-          onClick={() => setActiveTab("events")}
+          onClick={() => {
+            const emmaEvent = events.find(e => e.id === "emma-30");
+            if (emmaEvent) {
+              setModalEvent(emmaEvent);
+              setActiveTab("event-detail");
+            } else {
+              setActiveTab("events");
+            }
+          }}
           className="text-xs font-bold text-[#7C3AED] hover:text-[#6D28D9] shrink-0 border border-purple-200 bg-white hover:bg-purple-50 px-4 py-2 rounded-full transition-colors flex items-center gap-1 cursor-pointer"
         >
           View <ChevronRight className="size-3.5" />
@@ -221,7 +231,14 @@ export default function DashboardOverview({
             </div>
             <div className="p-6 flex flex-col gap-6">
               {activeEvents.map((ev) => (
-                <div key={ev.id} className="flex flex-col gap-3">
+                <div 
+                  key={ev.id} 
+                  onClick={() => {
+                    setModalEvent(ev);
+                    setActiveTab("event-detail");
+                  }}
+                  className="flex flex-col gap-3 cursor-pointer hover:border-purple-200 hover:opacity-90 transition-all"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="size-10 rounded-full bg-[#FAF8FF] border border-purple-100/50 flex items-center justify-center font-bold text-base shrink-0">{ev.icon}</div>
@@ -333,7 +350,14 @@ export default function DashboardOverview({
             </div>
             <div className="p-6 flex flex-col gap-4">
               {events.slice(0, 3).map((ev) => (
-                <div key={ev.id} className="flex items-center justify-between bg-[#FAF8FF] border border-purple-100/20 rounded-2xl p-4">
+                <div 
+                  key={ev.id} 
+                  onClick={() => {
+                    setModalEvent(ev);
+                    setActiveTab("event-detail");
+                  }}
+                  className="flex items-center justify-between bg-[#FAF8FF] border border-purple-100/20 hover:border-purple-200 rounded-2xl p-4 cursor-pointer transition-all"
+                >
                   <div className="flex items-center gap-3">
                     <div className="size-9 rounded-full bg-white flex items-center justify-center text-sm border border-purple-100/50 shrink-0">{ev.icon}</div>
                     <div className="flex flex-col text-left">

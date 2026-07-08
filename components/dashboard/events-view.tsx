@@ -200,7 +200,11 @@ export default function EventsView({
             return (
               <div 
                 key={ev.id}
-                className="bg-white border border-purple-50/70 rounded-[24px] p-6 text-left shadow-2xs hover:shadow-xs transition-all relative flex flex-col gap-5.5 select-none"
+                onClick={() => {
+                  setModalEvent(ev);
+                  setActiveTab("event-detail");
+                }}
+                className="bg-white border border-purple-55/70 rounded-[24px] p-6 text-left shadow-2xs hover:shadow-xs hover:border-purple-200 transition-all relative flex flex-col gap-5.5 select-none cursor-pointer"
               >
                 {/* Top Row: Meta details */}
                 <div className="flex items-start justify-between">
@@ -218,7 +222,10 @@ export default function EventsView({
                     {/* Dropdown Menu block */}
                     <div className="relative">
                       <button 
-                        onClick={() => setActiveDropdownId(activeDropdownId === ev.id ? null : ev.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDropdownId(activeDropdownId === ev.id ? null : ev.id);
+                        }}
                         className="size-9 rounded-full bg-zinc-50 hover:bg-purple-50 text-zinc-400 hover:text-[#7C3AED] flex items-center justify-center border border-zinc-100 transition-colors"
                       >
                         <MoreHorizontal className="size-4.5" />
@@ -227,22 +234,33 @@ export default function EventsView({
                       {activeDropdownId === ev.id && (
                         <div 
                           ref={dropdownRef as any}
+                          onClick={(e) => e.stopPropagation()}
                           className="absolute right-0 top-11 bg-white border border-purple-100 rounded-xl shadow-xl w-[170px] py-1.5 z-30 animate-in fade-in slide-in-from-top-3 duration-200"
                         >
                           <button 
-                            onClick={() => { setModalEvent(ev); setActiveModal("preview"); setActiveDropdownId(null); }}
-                            className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setModalEvent(ev);
+                              setActiveTab("event-detail");
+                              setActiveDropdownId(null);
+                            }}
+                            className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors cursor-pointer border-none bg-transparent"
                           >
                             <Eye className="size-4" /> Preview page
                           </button>
                           <button 
-                            onClick={() => handleCopyLink(ev.title)}
-                            className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyLink(ev.title);
+                              setActiveDropdownId(null);
+                            }}
+                            className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors cursor-pointer border-none bg-transparent"
                           >
                             <Link2 className="size-4" /> Copy share link
                           </button>
                           <button 
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setModalEvent(ev);
                               setFormTitle(ev.title);
                               setFormRecipient(ev.recipient);
@@ -253,20 +271,30 @@ export default function EventsView({
                               setActiveModal("edit");
                               setActiveDropdownId(null);
                             }}
-                            className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors cursor-pointer"
+                            className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors cursor-pointer border-none bg-transparent"
                           >
                             <Edit2 className="size-4" /> Edit
                           </button>
                           <button 
-                            onClick={() => { setModalEvent(ev); setActiveModal("archive"); setActiveDropdownId(null); }}
-                            className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setModalEvent(ev);
+                              setActiveModal("archive");
+                              setActiveDropdownId(null);
+                            }}
+                            className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors cursor-pointer border-none bg-transparent"
                           >
                             <Archive className="size-4" /> Archive
                           </button>
                           <div className="border-t border-zinc-100 my-1" />
                           <button 
-                            onClick={() => { setModalEvent(ev); setActiveModal("delete"); setActiveDropdownId(null); }}
-                            className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setModalEvent(ev);
+                              setActiveModal("delete");
+                              setActiveDropdownId(null);
+                            }}
+                            className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer border-none bg-transparent"
                           >
                             <Trash2 className="size-4" /> Delete
                           </button>
@@ -274,7 +302,9 @@ export default function EventsView({
                       )}
                     </div>
 
-                    <ProgressCircle percentage={ev.progress} />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <ProgressCircle percentage={ev.progress} />
+                    </div>
                   </div>
                 </div>
 

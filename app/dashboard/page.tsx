@@ -17,6 +17,9 @@ import NotificationsView from "@/components/dashboard/notifications-view";
 import SettingsView from "@/components/dashboard/settings-view";
 import CreateCelebrationWizard from "@/components/dashboard/create-celebration-wizard";
 import ModalsContainer from "@/components/dashboard/modals-container";
+import EventDetailView from "@/components/dashboard/event-detail-view";
+import AddPersonView from "@/components/dashboard/add-person-view";
+import PersonDetailView from "@/components/dashboard/person-detail-view";
 
 export default function Dashboard() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -1005,6 +1008,7 @@ export default function Dashboard() {
             setWDescription={setWDescription}
             setWTheme={setWTheme}
             setWInvitees={setWInvitees}
+            setModalEvent={setModalEvent}
           />
         )}
 
@@ -1029,6 +1033,40 @@ export default function Dashboard() {
             setActiveTab={setActiveTab}
             setWizardStep={setWizardStep}
             dropdownRef={dropdownRef}
+          />
+        )}
+
+        {activeTab === "event-detail" && modalEvent && (
+          <EventDetailView
+            event={modalEvent}
+            events={events}
+            setEvents={setEvents}
+            setActiveTab={setActiveTab}
+            setModalEvent={setModalEvent}
+            setActiveModal={setActiveModal}
+            handleCopyLink={handleCopyLink}
+          />
+        )}
+
+        {activeTab === "add-person" && (
+          <AddPersonView
+            setActiveTab={setActiveTab}
+            setNetworkPeople={setNetworkPeople}
+          />
+        )}
+
+        {activeTab === "person-detail" && modalEvent && (
+          <PersonDetailView
+            person={modalEvent}
+            networkPeople={networkPeople}
+            setNetworkPeople={setNetworkPeople}
+            setActiveTab={setActiveTab}
+            setModalEvent={setModalEvent}
+            setWTitle={setWTitle}
+            setWRecipient={setWRecipient}
+            setWType={setWType}
+            setWDescription={setWDescription}
+            setWizardStep={setWizardStep}
           />
         )}
 

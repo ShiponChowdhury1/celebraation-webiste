@@ -106,7 +106,7 @@ export default function NetworkView({
             setPersonGroup("friend");
             setPersonBirthday("");
             setPersonTags("");
-            setActiveModal("add-person");
+            setActiveTab("add-person");
           }}
           className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-full px-5 h-[44px] text-xs font-bold transition-all shadow-md shadow-purple-600/20 flex items-center gap-2 cursor-pointer"
         >
@@ -293,7 +293,11 @@ export default function NetworkView({
             return (
               <div
                 key={p.id}
-                className="bg-white border border-purple-50/70 rounded-[24px] p-6 text-left shadow-2xs hover:shadow-xs transition-all relative flex flex-col gap-4 select-none"
+                onClick={() => {
+                  setModalEvent(p);
+                  setActiveTab("person-detail");
+                }}
+                className="bg-white border border-purple-55/70 hover:border-purple-200 rounded-[24px] p-6 text-left shadow-2xs hover:shadow-xs transition-all relative flex flex-col gap-4 select-none cursor-pointer"
               >
                 {/* Top profile segment */}
                 <div className="flex items-start justify-between">
@@ -307,7 +311,10 @@ export default function NetworkView({
 
                   <div className="relative">
                     <button 
-                      onClick={() => setActiveDropdownId(activeDropdownId === p.id ? null : p.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveDropdownId(activeDropdownId === p.id ? null : p.id);
+                      }}
                       className="size-8.5 rounded-full bg-zinc-50 hover:bg-purple-50 text-zinc-400 hover:text-[#7C3AED] flex items-center justify-center border border-zinc-100 transition-colors"
                     >
                       <MoreHorizontal className="size-4" />
@@ -316,16 +323,23 @@ export default function NetworkView({
                     {activeDropdownId === p.id && (
                       <div 
                         ref={dropdownRef as any}
+                        onClick={(e) => e.stopPropagation()}
                         className="absolute right-0 top-10 bg-white border border-purple-100 rounded-xl shadow-xl w-[170px] py-1.5 z-30 animate-in fade-in slide-in-from-top-3 duration-200"
                       >
                         <button 
-                          onClick={() => { setModalEvent(p); setActiveModal("view-person"); setActiveDropdownId(null); }}
-                          className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setModalEvent(p);
+                            setActiveTab("person-detail");
+                            setActiveDropdownId(null);
+                          }}
+                          className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors cursor-pointer border-none bg-transparent"
                         >
                           <Eye className="size-4" /> View profile
                         </button>
                         <button 
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setModalEvent(p);
                             setPersonName(p.name);
                             setPersonRole(p.relation);
@@ -335,12 +349,13 @@ export default function NetworkView({
                             setActiveModal("edit-person");
                             setActiveDropdownId(null);
                           }}
-                          className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors cursor-pointer"
+                          className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors cursor-pointer border-none bg-transparent"
                         >
                           <Edit2 className="size-4" /> Edit
                         </button>
                         <button 
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setWTitle(`${p.name}'s Celebration`);
                             setWRecipient(p.name);
                             setWType("Birthday");
@@ -349,14 +364,19 @@ export default function NetworkView({
                             setWizardStep(1);
                             setActiveDropdownId(null);
                           }}
-                          className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors cursor-pointer"
+                          className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-zinc-700 hover:bg-purple-50 hover:text-[#7C3AED] flex items-center gap-2 transition-colors cursor-pointer border-none bg-transparent"
                         >
                           <Gift className="size-4" /> Create celebration
                         </button>
                         <div className="border-t border-zinc-100 my-1" />
                         <button 
-                          onClick={() => { setModalEvent(p); setActiveModal("remove-person"); setActiveDropdownId(null); }}
-                          className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setModalEvent(p);
+                            setActiveModal("remove-person");
+                            setActiveDropdownId(null);
+                          }}
+                          className="w-full h-[36px] px-3.5 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer border-none bg-transparent"
                         >
                           <Trash2 className="size-4" /> Remove
                         </button>

@@ -135,7 +135,7 @@ export function PhoneReveal() {
             ))}
           </ul>
 
-          <Link href="#get-started" className="w-full sm:w-auto mt-4">
+          <Link href="/login?mode=signup" className="w-full sm:w-auto mt-4">
             <Button className="w-full sm:w-auto bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold text-base h-[54px] px-8 rounded-full shadow-md shadow-purple-600/20 group transition-all">
               Create your celebration
               <ArrowRight className="size-5 ml-2 transition-transform group-hover:translate-x-1" />

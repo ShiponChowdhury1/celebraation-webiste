@@ -139,7 +139,7 @@ export function HowItWorks() {
           transition={{ duration: 0.4 }}
           className="mt-6"
         >
-          <Link href="#get-started">
+          <Link href="/login?mode=signup">
             <Button className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold text-base h-[54px] px-8 rounded-full shadow-md shadow-purple-600/20 transition-all">
               Start your first celebration
             </Button>

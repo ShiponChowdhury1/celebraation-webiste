@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useRef } from "react";
@@ -46,6 +47,7 @@ const ProgressCircle = ({ percentage }: { percentage: number }) => {
 };
 
 interface EventsViewProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   events: any[];
   searchQuery: string;
   setSearchQuery: (val: string) => void;

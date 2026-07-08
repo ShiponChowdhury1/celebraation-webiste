@@ -56,7 +56,7 @@ export function Navbar() {
               Sign in
             </Button>
           </Link>
-          <Link href="#get-started">
+          <Link href="/login?mode=signup">
             <Button className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium px-6 h-[48px] rounded-full text-base shadow-sm hover:shadow-md transition-all">
               Get started free
             </Button>
@@ -97,7 +97,7 @@ export function Navbar() {
                 Sign in
               </Button>
             </Link>
-            <Link href="#get-started" onClick={() => setIsOpen(false)} className="w-full">
+            <Link href="/login?mode=signup" onClick={() => setIsOpen(false)} className="w-full">
               <Button className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium h-[48px] rounded-full text-base shadow-sm transition-all">
                 Get started free
               </Button>
